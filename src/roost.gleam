@@ -6,13 +6,7 @@
 
 import gleam/json
 import gleam/option.{type Option}
-import roost/frame.{type DecodeError, type Incoming}
-
-/// Phoenix reply status.
-pub type ReplyStatus {
-  StatusOk
-  StatusError
-}
+import roost/frame.{type DecodeError, type Incoming, type ReplyStatus}
 
 /// Encode an outbound Phoenix wire frame.
 pub fn encode(
@@ -43,12 +37,7 @@ pub fn encode_reply(
   status status: ReplyStatus,
   response response: json.Json,
 ) -> String {
-  let frame_status = case status {
-    StatusOk -> frame.StatusOk
-    StatusError -> frame.StatusError
-  }
-
-  frame.encode_reply(join_ref:, ref:, topic:, status: frame_status, response:)
+  frame.encode_reply(join_ref:, ref:, topic:, status:, response:)
 }
 
 /// Check whether an event name is a Phoenix-reserved system event.

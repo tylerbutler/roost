@@ -13,29 +13,11 @@ pub fn frame_tests() {
     describe("encode", [
       it("encodes client outbound fixtures", fn() {
         fixtures.client_outbound()
-        |> list.each(fn(case_) {
-          frame.encode(
-            join_ref: case_.join_ref,
-            ref: case_.ref,
-            topic: case_.topic,
-            event: case_.event,
-            payload: case_.payload,
-          )
-          |> expect.to_equal(case_.encoded)
-        })
+        |> expect_encoded_frames
       }),
       it("encodes server outbound fixtures", fn() {
         fixtures.server_outbound()
-        |> list.each(fn(case_) {
-          frame.encode(
-            join_ref: case_.join_ref,
-            ref: case_.ref,
-            topic: case_.topic,
-            event: case_.event,
-            payload: case_.payload,
-          )
-          |> expect.to_equal(case_.encoded)
-        })
+        |> expect_encoded_frames
       }),
     ]),
     describe("encode_heartbeat", [
@@ -123,7 +105,7 @@ pub fn frame_tests() {
           join_ref: Some("1"),
           ref: "1",
           topic: "room:lobby",
-          status: roost.StatusOk,
+          status: frame.StatusOk,
           response: json.object([]),
         )
         |> expect.to_equal(
@@ -148,6 +130,20 @@ pub fn frame_tests() {
       }),
     ]),
   ])
+}
+
+fn expect_encoded_frames(cases: List(fixtures.FrameCase)) {
+  cases
+  |> list.each(fn(case_) {
+    frame.encode(
+      join_ref: case_.join_ref,
+      ref: case_.ref,
+      topic: case_.topic,
+      event: case_.event,
+      payload: case_.payload,
+    )
+    |> expect.to_equal(case_.encoded)
+  })
 }
 
 fn reply_status(status: fixtures.ReplyStatus) -> frame.ReplyStatus {

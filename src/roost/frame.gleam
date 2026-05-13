@@ -12,6 +12,7 @@
 import gleam/dynamic.{type Dynamic}
 import gleam/dynamic/decode
 import gleam/json
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 
@@ -72,8 +73,8 @@ pub fn encode(
 ) -> String {
   json.to_string(
     json.preprocessed_array([
-      option_to_json(join_ref),
-      option_to_json(ref),
+      json.nullable(join_ref, of: json.string),
+      json.nullable(ref, of: json.string),
       json.string(topic),
       json.string(event),
       payload,
@@ -149,22 +150,22 @@ fn decode_fields(
   event event: Dynamic,
   payload payload: Dynamic,
 ) -> Result(Incoming, DecodeError) {
-  use join_ref <- result.try(decode_dynamic(
+  use join_ref <- result.try(decode_frame_field(
     join_ref,
     decode.optional(decode.string),
     "Expected join_ref to be a string or null",
   ))
-  use ref <- result.try(decode_dynamic(
+  use ref <- result.try(decode_frame_field(
     ref,
     decode.optional(decode.string),
     "Expected ref to be a string or null",
   ))
-  use topic <- result.try(decode_dynamic(
+  use topic <- result.try(decode_frame_field(
     topic,
     decode.string,
     "Expected topic to be a string",
   ))
-  use event <- result.try(decode_dynamic(
+  use event <- result.try(decode_frame_field(
     event,
     decode.string,
     "Expected event to be a string",
@@ -178,29 +179,25 @@ fn decode_fields(
   ))
 }
 
-fn decode_dynamic(
-  data: Dynamic,
+fn decode_frame_field(
+  field: Dynamic,
   decoder: decode.Decoder(a),
   error_message: String,
 ) -> Result(a, DecodeError) {
-  data
+  field
   |> decode.run(decoder)
   |> result.replace_error(InvalidFormat(error_message))
 }
 
 /// Check whether an event name is a Phoenix-reserved system event.
 pub fn is_system_event(event: String) -> Bool {
-  event == join_event
-  || event == leave_event
-  || event == reply_event
-  || event == error_event
-  || event == close_event
-  || event == heartbeat_event
-}
-
-fn option_to_json(opt: Option(String)) -> json.Json {
-  case opt {
-    None -> json.null()
-    Some(s) -> json.string(s)
-  }
+  [
+    join_event,
+    leave_event,
+    reply_event,
+    error_event,
+    close_event,
+    heartbeat_event,
+  ]
+  |> list.contains(event)
 }
