@@ -42,6 +42,18 @@ pub fn join_message() {
 - Manage channel processes, refs, reconnects, or heartbeats.
 - Depend on Gluegun, Beryl, Mist, OTP, or any transport runtime.
 
+## JavaScript and TypeScript clients
+
+Gleam can compile this package to JavaScript, but `roost` is still only a
+Phoenix wire-protocol codec. It can be useful as the codec inside a custom
+JavaScript or TypeScript client, especially when you want runtime-neutral
+protocol helpers.
+
+For a full browser or Node.js Phoenix client, prefer the official Phoenix
+JavaScript client. It already handles WebSocket lifecycle, channel state,
+refs, push replies, timeouts, heartbeats, reconnects, rejoins, and Presence.
+Those client responsibilities intentionally live outside `roost`.
+
 ## Development
 
 ```sh
