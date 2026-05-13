@@ -1,67 +1,57 @@
-//// Phoenix-channel WebSocket client for Gleam, built on Gluegun.
+//// Phoenix channel wire protocol helpers for Gleam.
 ////
-//// This module is the public facade. It re-exports the common channel
-//// lifecycle functions from `roost/channel`.
-////
-//// ## Quick start
-////
-//// ```gleam
-//// import gleam/io
-//// import gleam/json
-//// import roost
-////
-//// pub fn main() {
-////   let assert Ok(channel) =
-////     roost.connect(
-////       host: "localhost",
-////       port: 4000,
-////       path: "/socket/websocket",
-////       topic: "room:lobby",
-////       payload: json.object([]),
-////     )
-////
-////   let assert Ok(_) = roost.push(channel, "ping", json.object([]))
-////
-////   case roost.receive(channel) {
-////     Ok(frame) -> io.debug(frame)
-////     Error(_) -> io.println("receive failed")
-////   }
-////
-////   let assert Ok(_) = roost.close(channel)
-//// }
-//// ```
+//// This module is the public protocol facade. It forwards to `roost/frame`
+//// for Phoenix wire frame encoding, decoding, heartbeat frames, reply frames,
+//// and reserved system-event checks.
 
 import gleam/json
-import roost/channel.{type Channel}
-import roost/error.{type RoostError}
-import roost/frame.{type Incoming}
+import gleam/option.{type Option}
+import roost/frame.{type DecodeError, type Incoming}
 
-/// Re-export of [`channel.connect`](roost/channel.html#connect).
-pub fn connect(
-  host host: String,
-  port port: Int,
-  path path: String,
+/// Phoenix reply status.
+pub type ReplyStatus {
+  StatusOk
+  StatusError
+}
+
+/// Encode an outbound Phoenix wire frame.
+pub fn encode(
+  join_ref join_ref: Option(String),
+  ref ref: Option(String),
   topic topic: String,
+  event event: String,
   payload payload: json.Json,
-) -> Result(Channel, RoostError) {
-  channel.connect(host:, port:, path:, topic:, payload:)
+) -> String {
+  frame.encode(join_ref:, ref:, topic:, event:, payload:)
 }
 
-/// Re-export of [`channel.push`](roost/channel.html#push).
-pub fn push(
-  channel: Channel,
-  event: String,
-  payload: json.Json,
-) -> Result(Nil, RoostError) {
-  channel.push(channel, event, payload)
+/// Decode a Phoenix wire JSON string into an inbound frame.
+pub fn decode(text: String) -> Result(Incoming, DecodeError) {
+  frame.decode(text)
 }
 
-/// Re-export of [`channel.receive`](roost/channel.html#receive).
-pub fn receive(channel: Channel) -> Result(Incoming, RoostError) {
-  channel.receive(channel)
+/// Encode a Phoenix heartbeat frame.
+pub fn encode_heartbeat(ref: String) -> String {
+  frame.encode_heartbeat(ref)
 }
 
-/// Re-export of [`channel.close`](roost/channel.html#close).
-pub fn close(channel: Channel) -> Result(Nil, RoostError) {
-  channel.close(channel)
+/// Encode a Phoenix reply frame.
+pub fn encode_reply(
+  join_ref join_ref: Option(String),
+  ref ref: String,
+  topic topic: String,
+  status status: ReplyStatus,
+  response response: json.Json,
+) -> String {
+  let frame_status = case status {
+    StatusOk -> frame.StatusOk
+    StatusError -> frame.StatusError
+  }
+
+  frame.encode_reply(join_ref:, ref:, topic:, status: frame_status, response:)
+}
+
+/// Check whether an event name is a Phoenix-reserved system event.
+pub fn is_system_event(event: String) -> Bool {
+  frame.is_system_event(event)
 }

@@ -1,5 +1,6 @@
 import gleam/json
 import gleam/option.{None, Some}
+import roost
 import roost/frame
 import startest.{describe, it}
 import startest/expect
@@ -36,6 +37,32 @@ pub fn frame_tests() {
         |> expect.to_equal("[null,\"42\",\"phoenix\",\"heartbeat\",{}]")
       }),
     ]),
+    describe("encode_reply", [
+      it("encodes a phx_reply with ok status", fn() {
+        frame.encode_reply(
+          join_ref: Some("1"),
+          ref: "1",
+          topic: "room:lobby",
+          status: frame.StatusOk,
+          response: json.object([#("welcome", json.bool(True))]),
+        )
+        |> expect.to_equal(
+          "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\",\"response\":{\"welcome\":true}}]",
+        )
+      }),
+      it("encodes a phx_reply with error status", fn() {
+        frame.encode_reply(
+          join_ref: None,
+          ref: "2",
+          topic: "room:lobby",
+          status: frame.StatusError,
+          response: json.object([#("reason", json.string("unauthorized"))]),
+        )
+        |> expect.to_equal(
+          "[null,\"2\",\"room:lobby\",\"phx_reply\",{\"status\":\"error\",\"response\":{\"reason\":\"unauthorized\"}}]",
+        )
+      }),
+    ]),
     describe("decode", [
       it("decodes a phx_reply with both refs", fn() {
         let assert Ok(f) =
@@ -64,6 +91,11 @@ pub fn frame_tests() {
         let assert Error(frame.InvalidFormat(_)) = frame.decode("[1,2,3]")
         Nil
       }),
+      it("returns InvalidFormat when array has extra elements", fn() {
+        let assert Error(frame.InvalidFormat(_)) =
+          frame.decode("[null,null,\"topic\",\"event\",{},\"extra\"]")
+        Nil
+      }),
       it("round-trips encode -> decode", fn() {
         let encoded =
           frame.encode(
@@ -82,13 +114,55 @@ pub fn frame_tests() {
     ]),
     describe("is_system_event", [
       it("recognises phx_join", fn() {
-        frame.is_system_event("phx_join") |> expect.to_equal(True)
+        frame.is_system_event(frame.join_event) |> expect.to_equal(True)
       }),
       it("recognises heartbeat", fn() {
-        frame.is_system_event("heartbeat") |> expect.to_equal(True)
+        frame.is_system_event(frame.heartbeat_event) |> expect.to_equal(True)
+      }),
+      it("exposes reserved event constants", fn() {
+        frame.join_event |> expect.to_equal("phx_join")
+        frame.leave_event |> expect.to_equal("phx_leave")
+        frame.reply_event |> expect.to_equal("phx_reply")
+        frame.error_event |> expect.to_equal("phx_error")
+        frame.close_event |> expect.to_equal("phx_close")
+        frame.heartbeat_event |> expect.to_equal("heartbeat")
+        frame.heartbeat_topic |> expect.to_equal("phoenix")
       }),
       it("rejects user events", fn() {
         frame.is_system_event("new_msg") |> expect.to_equal(False)
+      }),
+    ]),
+    describe("roost facade", [
+      it("forwards protocol helpers", fn() {
+        roost.encode_heartbeat("99")
+        |> expect.to_equal(frame.encode_heartbeat("99"))
+
+        roost.encode_reply(
+          join_ref: Some("1"),
+          ref: "1",
+          topic: "room:lobby",
+          status: roost.StatusOk,
+          response: json.object([]),
+        )
+        |> expect.to_equal(
+          "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\",\"response\":{}}]",
+        )
+
+        roost.is_system_event(frame.reply_event) |> expect.to_equal(True)
+      }),
+      it("forwards encode and decode", fn() {
+        let encoded =
+          roost.encode(
+            join_ref: None,
+            ref: Some("8"),
+            topic: frame.heartbeat_topic,
+            event: frame.heartbeat_event,
+            payload: json.object([]),
+          )
+
+        let assert Ok(decoded) = roost.decode(encoded)
+        decoded.topic |> expect.to_equal(frame.heartbeat_topic)
+        decoded.event |> expect.to_equal(frame.heartbeat_event)
       }),
     ]),
   ])

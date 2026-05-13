@@ -19,7 +19,7 @@ deps:
 
 # === BUILD ===
 
-# Build project (Erlang target)
+# Build project
 build:
     gleam build
 
