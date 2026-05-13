@@ -1,5 +1,8 @@
+import gleam/dynamic/decode
 import gleam/json
+import gleam/list
 import gleam/option.{None, Some}
+import phoenix_channel_fixtures/frame as fixtures
 import roost
 import roost/frame
 import startest.{describe, it}
@@ -8,27 +11,31 @@ import startest/expect
 pub fn frame_tests() {
   describe("frame", [
     describe("encode", [
-      it("encodes a phx_join with refs and payload", fn() {
-        frame.encode(
-          join_ref: Some("1"),
-          ref: Some("1"),
-          topic: "room:lobby",
-          event: "phx_join",
-          payload: json.object([#("name", json.string("alice"))]),
-        )
-        |> expect.to_equal(
-          "[\"1\",\"1\",\"room:lobby\",\"phx_join\",{\"name\":\"alice\"}]",
-        )
+      it("encodes client outbound fixtures", fn() {
+        fixtures.client_outbound()
+        |> list.each(fn(case_) {
+          frame.encode(
+            join_ref: case_.join_ref,
+            ref: case_.ref,
+            topic: case_.topic,
+            event: case_.event,
+            payload: case_.payload,
+          )
+          |> expect.to_equal(case_.encoded)
+        })
       }),
-      it("encodes null refs as JSON null", fn() {
-        frame.encode(
-          join_ref: None,
-          ref: None,
-          topic: "room:lobby",
-          event: "broadcast",
-          payload: json.object([]),
-        )
-        |> expect.to_equal("[null,null,\"room:lobby\",\"broadcast\",{}]")
+      it("encodes server outbound fixtures", fn() {
+        fixtures.server_outbound()
+        |> list.each(fn(case_) {
+          frame.encode(
+            join_ref: case_.join_ref,
+            ref: case_.ref,
+            topic: case_.topic,
+            event: case_.event,
+            payload: case_.payload,
+          )
+          |> expect.to_equal(case_.encoded)
+        })
       }),
     ]),
     describe("encode_heartbeat", [
@@ -38,63 +45,38 @@ pub fn frame_tests() {
       }),
     ]),
     describe("encode_reply", [
-      it("encodes a phx_reply with ok status", fn() {
-        frame.encode_reply(
-          join_ref: Some("1"),
-          ref: "1",
-          topic: "room:lobby",
-          status: frame.StatusOk,
-          response: json.object([#("welcome", json.bool(True))]),
-        )
-        |> expect.to_equal(
-          "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\",\"response\":{\"welcome\":true}}]",
-        )
-      }),
-      it("encodes a phx_reply with error status", fn() {
-        frame.encode_reply(
-          join_ref: None,
-          ref: "2",
-          topic: "room:lobby",
-          status: frame.StatusError,
-          response: json.object([#("reason", json.string("unauthorized"))]),
-        )
-        |> expect.to_equal(
-          "[null,\"2\",\"room:lobby\",\"phx_reply\",{\"status\":\"error\",\"response\":{\"reason\":\"unauthorized\"}}]",
-        )
+      it("encodes reply fixtures", fn() {
+        fixtures.replies()
+        |> list.each(fn(case_) {
+          frame.encode_reply(
+            join_ref: case_.join_ref,
+            ref: case_.ref,
+            topic: case_.topic,
+            status: reply_status(case_.status),
+            response: case_.response,
+          )
+          |> expect.to_equal(case_.encoded)
+        })
       }),
     ]),
     describe("decode", [
-      it("decodes a phx_reply with both refs", fn() {
-        let assert Ok(f) =
-          frame.decode(
-            "[\"1\",\"7\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\",\"response\":{}}]",
-          )
-        f.join_ref |> expect.to_equal(Some("1"))
-        f.ref |> expect.to_equal(Some("7"))
-        f.topic |> expect.to_equal("room:lobby")
-        f.event |> expect.to_equal("phx_reply")
+      it("decodes inbound common fixtures", fn() {
+        fixtures.inbound_common()
+        |> list.each(fn(case_) {
+          let assert Ok(f) = frame.decode(case_.encoded)
+          f.join_ref |> expect.to_equal(case_.join_ref)
+          f.ref |> expect.to_equal(case_.ref)
+          f.topic |> expect.to_equal(case_.topic)
+          f.event |> expect.to_equal(case_.event)
+          f.payload |> expect.to_equal(fixture_payload(case_.payload))
+        })
       }),
-      it("decodes a server push with null refs", fn() {
-        let assert Ok(f) =
-          frame.decode(
-            "[null,null,\"room:lobby\",\"new_msg\",{\"body\":\"hi\"}]",
-          )
-        f.join_ref |> expect.to_equal(None)
-        f.ref |> expect.to_equal(None)
-        f.event |> expect.to_equal("new_msg")
-      }),
-      it("returns InvalidJson on malformed input", fn() {
-        let assert Error(frame.InvalidJson(_)) = frame.decode("{not json")
-        Nil
-      }),
-      it("returns InvalidFormat on wrong array shape", fn() {
-        let assert Error(frame.InvalidFormat(_)) = frame.decode("[1,2,3]")
-        Nil
-      }),
-      it("returns InvalidFormat when array has extra elements", fn() {
-        let assert Error(frame.InvalidFormat(_)) =
-          frame.decode("[null,null,\"topic\",\"event\",{},\"extra\"]")
-        Nil
+      it("classifies invalid frame fixtures", fn() {
+        fixtures.invalid_frames()
+        |> list.each(fn(case_) {
+          let assert Error(reason) = frame.decode(case_.encoded)
+          decode_reason_matches(case_.reason, reason) |> expect.to_equal(True)
+        })
       }),
       it("round-trips encode -> decode", fn() {
         let encoded =
@@ -166,4 +148,29 @@ pub fn frame_tests() {
       }),
     ]),
   ])
+}
+
+fn reply_status(status: fixtures.ReplyStatus) -> frame.ReplyStatus {
+  case status {
+    fixtures.StatusOk -> frame.StatusOk
+    fixtures.StatusError -> frame.StatusError
+  }
+}
+
+fn fixture_payload(payload: json.Json) {
+  let assert Ok(payload) =
+    json.parse(from: json.to_string(payload), using: decode.dynamic)
+
+  payload
+}
+
+fn decode_reason_matches(
+  fixture_reason: fixtures.InvalidReason,
+  decode_error: frame.DecodeError,
+) -> Bool {
+  case fixture_reason, decode_error {
+    fixtures.InvalidJson, frame.InvalidJson(_) -> True
+    fixtures.InvalidFormat, frame.InvalidFormat(_) -> True
+    _, _ -> False
+  }
 }

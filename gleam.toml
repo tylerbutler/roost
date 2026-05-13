@@ -11,3 +11,4 @@ gleam_json = ">= 3.0.0 and < 4.0.0"
 
 [dev-dependencies]
 startest = ">= 0.8.0 and < 1.0.0"
+phoenix_channel_fixtures = { path = "../phoenix_channel_fixtures" }
