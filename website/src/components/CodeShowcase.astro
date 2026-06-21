@@ -1,0 +1,185 @@
+---
+import { Code } from 'astro:components';
+
+const sample = `import gleam/json
+import gleam/option.{Some}
+import roost
+import roost/frame
+
+/// Encode a phx_join frame for "room:lobby".
+pub fn join() -> String {
+  roost.encode(
+    join_ref: Some("1"),
+    ref: Some("1"),
+    topic: "room:lobby",
+    event: "phx_join",
+    payload: json.object([#("name", json.string("alice"))]),
+  )
+  // => ["1","1","room:lobby","phx_join",{"name":"alice"}]
+}
+
+/// Decode whatever the socket hands you into a typed value.
+pub fn handle(text: String) {
+  case roost.decode(text) {
+    Ok(frame.Incoming(topic:, event:, ..)) -> route(topic, event)
+    Error(frame.InvalidJson(reason)) -> log(reason)
+    Error(frame.InvalidFormat(reason)) -> log(reason)
+  }
+}`;
+---
+
+<section class="code" id="code" aria-labelledby="code-title">
+  <div class="container code-grid">
+    <div class="code-intro">
+      <p class="eyebrow"><span class="eyebrow-tick">//</span> show, don't tell</p>
+      <h2 id="code-title">Typed both ways.</h2>
+      <p class="code-sub">
+        <code>encode</code> turns labelled Gleam arguments into a Phoenix wire
+        string. <code>decode</code> turns a raw socket message into an
+        <code>Incoming</code> value — or an explicit, typed error. No
+        stringly-typed payloads, no surprises.
+      </p>
+      <ul class="code-notes">
+        <li><span class="dot"></span> Labelled args mirror the wire array order</li>
+        <li><span class="dot"></span> Errors are values: <code>InvalidJson</code> / <code>InvalidFormat</code></li>
+        <li><span class="dot"></span> Same shape compiles to Erlang <em>and</em> JavaScript</li>
+      </ul>
+    </div>
+
+    <figure class="editor" aria-label="Gleam example using roost">
+      <figcaption class="editor-bar">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="filename">channel.gleam</span>
+      </figcaption>
+      <div class="editor-body">
+        <Code code={sample} lang="gleam" theme="night-owl" />
+      </div>
+    </figure>
+  </div>
+</section>
+
+<style>
+  .code {
+    padding-block: var(--space-section);
+  }
+
+  .code-grid {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+  }
+
+  .eyebrow { margin-bottom: 1rem; }
+  .eyebrow-tick { color: var(--brand); }
+
+  .code-intro h2 {
+    font-size: clamp(2rem, 1.5rem + 2.5vw, 3rem);
+    margin-bottom: 1.1rem;
+  }
+
+  .code-sub {
+    color: var(--muted);
+    font-size: 1.05rem;
+    margin-bottom: 1.75rem;
+    max-width: 40ch;
+  }
+
+  .code-sub code,
+  .code-notes code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    color: var(--brand-bright);
+  }
+
+  .code-notes {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+
+  .code-notes li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+  }
+
+  .code-notes .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand);
+    flex-shrink: 0;
+    transform: translateY(-1px);
+  }
+
+  /* ---- Editor frame ---- */
+  .editor {
+    margin: 0;
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg-deep);
+    box-shadow:
+      0 1px 0 oklch(1 0 0 / 0.04) inset,
+      0 30px 60px -30px oklch(0 0 0 / 0.7);
+  }
+
+  .editor-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.7rem 1rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .dots {
+    display: inline-flex;
+    gap: 0.4rem;
+  }
+  .dots i {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--surface-3);
+  }
+  .dots i:first-child { background: color-mix(in oklch, var(--brand) 70%, var(--surface-3)); }
+
+  .filename {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  .editor-body {
+    overflow-x: auto;
+  }
+
+  .editor-body :global(.astro-code) {
+    margin: 0;
+    padding: 1.35rem 1.5rem;
+    background: transparent !important;
+    font-size: 0.875rem;
+    line-height: 1.7;
+    font-family: var(--font-mono);
+    tab-size: 2;
+  }
+
+  .editor-body :global(.astro-code code) {
+    font-family: var(--font-mono);
+  }
+
+  @media (max-width: 880px) {
+    .code-grid {
+      grid-template-columns: 1fr;
+    }
+    .editor-body :global(.astro-code) {
+      font-size: 0.8rem;
+    }
+  }
+</style>

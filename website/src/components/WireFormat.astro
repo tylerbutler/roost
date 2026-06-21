@@ -1,0 +1,236 @@
+---
+const cells = [
+  { i: 0, name: 'join_ref', value: '"1"', type: 'Option(String)', desc: 'Ties a message to a specific channel join. Null until the channel is joined.' },
+  { i: 1, name: 'ref', value: '"1"', type: 'Option(String)', desc: 'Per-message reference used to match a reply back to its request.' },
+  { i: 2, name: 'topic', value: '"room:lobby"', type: 'String', desc: 'The channel topic the frame belongs to, e.g. a room or stream.' },
+  { i: 3, name: 'event', value: '"phx_join"', type: 'String', desc: 'Event name — a reserved system event or one of your own.' },
+  { i: 4, name: 'payload', value: '{ … }', type: 'json.Json', desc: 'The JSON body. Anything your application needs to send.' },
+];
+---
+
+<section class="wire" id="wire" aria-labelledby="wire-title">
+  <div class="container">
+    <div class="wire-head">
+      <p class="eyebrow"><span class="eyebrow-tick">//</span> the whole protocol, on one line</p>
+      <h2 id="wire-title">Five slots. That's the wire.</h2>
+      <p class="wire-sub">
+        Every Phoenix channel frame is a five-element JSON array. roost encodes
+        to it and decodes from it — so it helps to see exactly what each slot
+        means. Hover or focus a slot to read its role.
+      </p>
+    </div>
+
+    <div class="frameline">
+      <span class="bracket" aria-hidden="true">[</span>
+      <ol class="slots">
+        {cells.map((c) => (
+          <li class="slot" tabindex="0" style={`--i:${c.i}`}>
+            <span class="slot-index">{c.i}</span>
+            <span class="slot-name">{c.name}</span>
+            <code class="slot-value">{c.value}</code>
+            <span class="slot-type">{c.type}</span>
+            <span class="slot-desc">{c.desc}</span>
+            <span class="slot-connector" aria-hidden="true"></span>
+          </li>
+        ))}
+      </ol>
+      <span class="bracket" aria-hidden="true">]</span>
+    </div>
+
+    <p class="wire-foot">
+      <span class="foot-tag">heartbeat</span> frames are the same shape with
+      topic <code>"phoenix"</code> and a null <code>join_ref</code> — roost ships
+      a helper so you never hand-write one.
+    </p>
+  </div>
+</section>
+
+<style>
+  .wire {
+    padding-block: var(--space-section);
+    background:
+      radial-gradient(80% 50% at 50% 0%, var(--weave-tint), transparent 70%);
+  }
+
+  .wire-head {
+    max-width: 42rem;
+    margin: 0 auto clamp(2.5rem, 5vw, 3.5rem);
+    text-align: center;
+  }
+
+  .wire-head .eyebrow { margin-bottom: 1rem; }
+  .eyebrow-tick { color: var(--brand); }
+
+  .wire-head h2 {
+    font-size: clamp(2rem, 1.5rem + 2.5vw, 3.25rem);
+    margin-bottom: 1.1rem;
+  }
+
+  .wire-sub {
+    color: var(--muted);
+    font-size: 1.075rem;
+    margin-inline: auto;
+    max-width: 50ch;
+  }
+
+  .frameline {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .bracket {
+    font-family: var(--font-mono);
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    color: color-mix(in oklch, var(--brand) 60%, var(--border-strong));
+    line-height: 1;
+    align-self: center;
+    font-weight: 300;
+  }
+
+  .slots {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: clamp(0.5rem, 1.2vw, 0.85rem);
+    flex: 1;
+    max-width: 60rem;
+  }
+
+  .slot {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1.1rem 0.9rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    cursor: default;
+    transition:
+      transform 0.3s var(--ease-out-quint),
+      border-color 0.3s var(--ease-out-quint),
+      background 0.3s var(--ease-out-quint);
+  }
+
+  .slot:hover,
+  .slot:focus-visible {
+    transform: translateY(-4px);
+    border-color: color-mix(in oklch, var(--brand) 55%, var(--border));
+    background: color-mix(in oklch, var(--brand-tint), var(--surface));
+    outline: none;
+  }
+
+  .slot-index {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--faint);
+  }
+
+  .slot-name {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--brand-bright);
+    letter-spacing: -0.01em;
+  }
+
+  .slot-value {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .slot-type {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .slot-desc {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--ink-2);
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition:
+      max-height 0.35s var(--ease-out-quint),
+      opacity 0.25s var(--ease-out-quint),
+      margin-top 0.35s var(--ease-out-quint);
+  }
+
+  .slot:hover .slot-desc,
+  .slot:focus-visible .slot-desc {
+    max-height: 8rem;
+    opacity: 1;
+    margin-top: 0.35rem;
+  }
+
+  .wire-foot {
+    margin: clamp(2rem, 4vw, 3rem) auto 0;
+    max-width: 48ch;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.975rem;
+  }
+
+  .wire-foot code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    color: var(--brand-bright);
+  }
+
+  .foot-tag {
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    color: var(--on-brand);
+    background: var(--brand);
+    padding: 0.1em 0.5em;
+    border-radius: var(--r-pill);
+    font-weight: 600;
+  }
+
+  @media (max-width: 760px) {
+    .slots {
+      grid-template-columns: 1fr;
+      max-width: 32rem;
+    }
+    .slot {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.6rem;
+      padding: 0.9rem 1rem;
+    }
+    .slot-desc {
+      flex-basis: 100%;
+    }
+    .slot:hover .slot-desc,
+    .slot:focus-visible .slot-desc {
+      max-height: 6rem;
+    }
+    .bracket {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slot {
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .slot:hover,
+    .slot:focus-visible {
+      transform: none;
+    }
+    .slot-desc {
+      transition: opacity 0.2s;
+    }
+  }
+</style>
