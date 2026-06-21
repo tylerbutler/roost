@@ -1,49 +1,182 @@
 ---
-const cells = [
-  { i: 0, name: 'join_ref', value: '"1"', type: 'Option(String)', desc: 'Ties a message to a specific channel join. Null until the channel is joined.' },
-  { i: 1, name: 'ref', value: '"1"', type: 'Option(String)', desc: 'Per-message reference used to match a reply back to its request.' },
-  { i: 2, name: 'topic', value: '"room:lobby"', type: 'String', desc: 'The channel topic the frame belongs to, e.g. a room or stream.' },
-  { i: 3, name: 'event', value: '"phx_join"', type: 'String', desc: 'Event name — a reserved system event or one of your own.' },
-  { i: 4, name: 'payload', value: '{ … }', type: 'json.Json', desc: 'The JSON body. Anything your application needs to send.' },
+const frames = [
+  {
+    id: 'join',
+    label: 'phx_join',
+    title: 'Join a channel',
+    summary: 'A client asks Phoenix to join a topic.',
+    cells: [
+      { i: 0, name: 'join_ref', value: '"1"', type: 'Option(String)', desc: 'Ties future replies to this specific channel join. It is usually present for join-related traffic.', gleam: 'join_ref: Some("1")' },
+      { i: 1, name: 'ref', value: '"1"', type: 'Option(String)', desc: 'Per-message reference used to match the eventual phx_reply back to this request.', gleam: 'ref: Some("1")' },
+      { i: 2, name: 'topic', value: '"room:lobby"', type: 'String', desc: 'The channel topic this frame belongs to. roost keeps it as plain protocol data; your runtime owns the socket.', gleam: 'topic: "room:lobby"' },
+      { i: 3, name: 'event', value: '"phx_join"', type: 'String', desc: 'The reserved Phoenix event for joining a channel. roost exposes reserved-event helpers so callers do not hand-roll protocol checks.', gleam: 'event: "phx_join"' },
+      { i: 4, name: 'payload', value: '{ name }', type: 'json.Json', desc: 'Application JSON sent with the join. roost carries the payload; your application decides its shape.', gleam: 'payload: json.object([#("name", json.string("alice"))])' },
+    ],
+  },
+  {
+    id: 'heartbeat',
+    label: 'heartbeat',
+    title: 'Keep the socket alive',
+    summary: 'Phoenix heartbeats use the same five slots.',
+    cells: [
+      { i: 0, name: 'join_ref', value: 'null', type: 'Option(String)', desc: 'Heartbeats are not tied to a channel join, so this slot is null on the wire.', gleam: 'join_ref: None' },
+      { i: 1, name: 'ref', value: '"2"', type: 'Option(String)', desc: 'The caller still owns the ref. roost builds the frame, not the counter.', gleam: 'ref: Some("2")' },
+      { i: 2, name: 'topic', value: '"phoenix"', type: 'String', desc: 'Phoenix reserves the literal "phoenix" topic for heartbeat traffic.', gleam: 'topic: "phoenix"' },
+      { i: 3, name: 'event', value: '"heartbeat"', type: 'String', desc: 'The reserved event that tells Phoenix this frame is a heartbeat.', gleam: 'event: "heartbeat"' },
+      { i: 4, name: 'payload', value: '{}', type: 'json.Json', desc: 'Heartbeat payloads are empty by convention; scheduling them is still your runtime\'s job.', gleam: 'payload: json.object([])' },
+    ],
+  },
+  {
+    id: 'reply',
+    label: 'phx_reply',
+    title: 'Receive a reply',
+    summary: 'Replies point back to the request ref.',
+    cells: [
+      { i: 0, name: 'join_ref', value: '"1"', type: 'Option(String)', desc: 'Carries the join reference when Phoenix can associate the reply with a channel join.', gleam: 'join_ref: Some("1")' },
+      { i: 1, name: 'ref', value: '"1"', type: 'Option(String)', desc: 'Matches the request that Phoenix is answering. This is how callers route replies.', gleam: 'ref: Some("1")' },
+      { i: 2, name: 'topic', value: '"room:lobby"', type: 'String', desc: 'The channel topic the reply belongs to.', gleam: 'topic: "room:lobby"' },
+      { i: 3, name: 'event', value: '"phx_reply"', type: 'String', desc: 'The reserved event that marks this frame as a Phoenix reply.', gleam: 'event: "phx_reply"' },
+      { i: 4, name: 'payload', value: '{ status }', type: 'json.Json', desc: 'Phoenix replies include status and response data. roost decodes the frame so your code can branch on the result.', gleam: 'payload: reply_payload' },
+    ],
+  },
 ];
+
+const initialFrame = frames[0];
+const initialCell = initialFrame.cells[3];
 ---
 
 <section class="wire" id="wire" aria-labelledby="wire-title">
   <div class="container">
     <div class="wire-head">
-      <p class="eyebrow"><span class="eyebrow-tick">//</span> the whole protocol, on one line</p>
-      <h2 id="wire-title">Five slots. That's the wire.</h2>
+      <p class="wire-kicker">Tiny protocol inspector</p>
+      <h2 id="wire-title">Five slots. One frame.</h2>
       <p class="wire-sub">
-        Every Phoenix channel frame is a five-element JSON array. roost encodes
-        to it and decodes from it — so it helps to see exactly what each slot
-        means. Hover or focus a slot to read its role.
+        Pick a frame, then inspect a slot. roost maps the Phoenix channel wire
+        array to labelled Gleam arguments without taking over your transport.
       </p>
     </div>
 
-    <div class="frameline">
-      <span class="bracket" aria-hidden="true">[</span>
-      <ol class="slots">
-        {cells.map((c) => (
-          <li class="slot" tabindex="0" style={`--i:${c.i}`}>
-            <span class="slot-index">{c.i}</span>
-            <span class="slot-name">{c.name}</span>
-            <code class="slot-value">{c.value}</code>
-            <span class="slot-type">{c.type}</span>
-            <span class="slot-desc">{c.desc}</span>
-            <span class="slot-connector" aria-hidden="true"></span>
-          </li>
+    <div
+      class="inspector"
+      data-protocol-inspector
+      data-active-frame={initialFrame.id}
+      data-active-slot={initialCell.i}
+    >
+      <div class="presets" role="tablist" aria-label="Frame examples">
+        {frames.map((frame, index) => (
+          <button
+            class:list={['preset', index === 0 && 'is-active']}
+            type="button"
+            role="tab"
+            aria-selected={index === 0 ? 'true' : 'false'}
+            data-frame={frame.id}
+          >
+            <span>{frame.label}</span>
+            <small>{frame.summary}</small>
+          </button>
         ))}
-      </ol>
-      <span class="bracket" aria-hidden="true">]</span>
-    </div>
+      </div>
 
-    <p class="wire-foot">
-      <span class="foot-tag">heartbeat</span> frames are the same shape with
-      topic <code>"phoenix"</code> and a null <code>join_ref</code> — roost ships
-      a helper so you never hand-write one.
-    </p>
+      <div class="inspector-body">
+        <div class="frame-area" aria-label="Phoenix channel frame">
+          <div class="frame-meta">
+            <span class="frame-title" data-frame-title>{initialFrame.title}</span>
+            <span class="frame-shape">[join_ref, ref, topic, event, payload]</span>
+          </div>
+
+          <div class="frame-line">
+            <span class="bracket" aria-hidden="true">[</span>
+            <ol class="slots">
+              {initialFrame.cells.map((cell) => (
+                <li>
+                  <button
+                    class:list={['slot', cell.i === initialCell.i && 'is-active']}
+                    type="button"
+                    data-slot={cell.i}
+                    aria-pressed={cell.i === initialCell.i ? 'true' : 'false'}
+                    style={`--i:${cell.i}`}
+                  >
+                    <span class="slot-index">{cell.i}</span>
+                    <span class="slot-name" data-field="name">{cell.name}</span>
+                    <code class="slot-value" data-field="value">{cell.value}</code>
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <span class="bracket" aria-hidden="true">]</span>
+          </div>
+        </div>
+
+        <aside class="detail" aria-live="polite" aria-label="Selected slot details">
+          <p class="detail-label">Selected slot</p>
+          <div class="detail-head">
+            <h3 data-detail-name>{initialCell.name}</h3>
+            <span data-detail-type>{initialCell.type}</span>
+          </div>
+          <p class="detail-desc" data-detail-desc>{initialCell.desc}</p>
+          <pre class="gleam-map"><code data-detail-gleam>{initialCell.gleam}</code></pre>
+        </aside>
+      </div>
+    </div>
   </div>
 </section>
+
+<script define:vars={{ frames }}>
+  const inspectors = document.querySelectorAll('[data-protocol-inspector]');
+
+  for (const inspector of inspectors) {
+    const presets = Array.from(inspector.querySelectorAll('[data-frame]'));
+    const slots = Array.from(inspector.querySelectorAll('[data-slot]'));
+    const frameTitle = inspector.querySelector('[data-frame-title]');
+    const detailName = inspector.querySelector('[data-detail-name]');
+    const detailType = inspector.querySelector('[data-detail-type]');
+    const detailDesc = inspector.querySelector('[data-detail-desc]');
+    const detailGleam = inspector.querySelector('[data-detail-gleam]');
+
+    const setActive = (frameId, slotIndex) => {
+      const frame = frames.find((item) => item.id === frameId) ?? frames[0];
+      const cell = frame.cells.find((item) => item.i === slotIndex) ?? frame.cells[0];
+
+      inspector.dataset.activeFrame = frame.id;
+      inspector.dataset.activeSlot = String(cell.i);
+
+      if (frameTitle) frameTitle.textContent = frame.title;
+      if (detailName) detailName.textContent = cell.name;
+      if (detailType) detailType.textContent = cell.type;
+      if (detailDesc) detailDesc.textContent = cell.desc;
+      if (detailGleam) detailGleam.textContent = cell.gleam;
+
+      presets.forEach((preset) => {
+        const isActive = preset.dataset.frame === frame.id;
+        preset.classList.toggle('is-active', isActive);
+        preset.setAttribute('aria-selected', String(isActive));
+      });
+
+      slots.forEach((slot) => {
+        const slotNumber = Number(slot.dataset.slot);
+        const nextCell = frame.cells.find((item) => item.i === slotNumber);
+        const isActive = slotNumber === cell.i;
+        slot.classList.toggle('is-active', isActive);
+        slot.setAttribute('aria-pressed', String(isActive));
+        slot.querySelector('[data-field="name"]').textContent = nextCell.name;
+        slot.querySelector('[data-field="value"]').textContent = nextCell.value;
+      });
+    };
+
+    presets.forEach((preset) => {
+      preset.addEventListener('click', () => {
+        const activeSlot = Number(inspector.dataset.activeSlot ?? 3);
+        setActive(preset.dataset.frame, activeSlot);
+      });
+    });
+
+    slots.forEach((slot) => {
+      slot.addEventListener('click', () => {
+        setActive(inspector.dataset.activeFrame, Number(slot.dataset.slot));
+      });
+    });
+  }
+</script>
 
 <style>
   .wire {
@@ -53,13 +186,16 @@ const cells = [
   }
 
   .wire-head {
-    max-width: 42rem;
+    max-width: 44rem;
     margin: 0 auto clamp(2.5rem, 5vw, 3.5rem);
     text-align: center;
   }
 
-  .wire-head .eyebrow { margin-bottom: 1rem; }
-  .eyebrow-tick { color: var(--brand); }
+  .wire-kicker {
+    margin-bottom: 0.9rem;
+    color: var(--brand-bright);
+    font-weight: 700;
+  }
 
   .wire-head h2 {
     font-size: clamp(2rem, 1.5rem + 2.5vw, 3.25rem);
@@ -70,58 +206,176 @@ const cells = [
     color: var(--muted);
     font-size: 1.075rem;
     margin-inline: auto;
-    max-width: 50ch;
+    max-width: 54ch;
   }
 
-  .frameline {
+  .inspector {
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background:
+      linear-gradient(135deg, color-mix(in oklch, var(--brand-tint), transparent 40%), transparent 42%),
+      var(--bg-deep);
+    overflow: hidden;
+  }
+
+  .presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--border-soft);
+    background: color-mix(in oklch, var(--surface), transparent 18%);
+  }
+
+  .preset {
+    display: grid;
+    gap: 0.2rem;
+    padding: 1rem clamp(0.9rem, 2vw, 1.25rem);
+    color: var(--muted);
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-right: 1px solid var(--border-soft);
+    cursor: pointer;
+    transition:
+      color 0.2s var(--ease-out-quint),
+      background 0.2s var(--ease-out-quint);
+  }
+
+  .preset:last-child {
+    border-right: 0;
+  }
+
+  .preset span {
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--ink-2);
+  }
+
+  .preset small {
+    font: inherit;
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
+
+  .preset:hover,
+  .preset.is-active {
+    color: var(--ink-2);
+    background: color-mix(in oklch, var(--brand-tint), transparent 38%);
+  }
+
+  .preset.is-active span {
+    color: var(--brand-bright);
+  }
+
+  .inspector-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+    gap: clamp(1rem, 3vw, 2rem);
+    padding: clamp(1rem, 3vw, 1.5rem);
+  }
+
+  .frame-area {
+    display: grid;
+    gap: clamp(1.25rem, 3vw, 2rem);
+    align-content: center;
+    min-width: 0;
+    padding: clamp(0.5rem, 2vw, 1rem);
+  }
+
+  .frame-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+  }
+
+  .frame-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 1rem + 1.4vw, 2rem);
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  .frame-shape {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--faint);
+  }
+
+  .frame-line {
     display: flex;
     align-items: stretch;
     gap: 0.5rem;
-    justify-content: center;
+    min-width: 0;
   }
 
   .bracket {
+    align-self: center;
+    color: color-mix(in oklch, var(--brand) 60%, var(--border-strong));
     font-family: var(--font-mono);
     font-size: clamp(2.5rem, 6vw, 4rem);
-    color: color-mix(in oklch, var(--brand) 60%, var(--border-strong));
-    line-height: 1;
-    align-self: center;
     font-weight: 300;
+    line-height: 1;
   }
 
   .slots {
-    list-style: none;
-    margin: 0;
-    padding: 0;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: clamp(0.5rem, 1.2vw, 0.85rem);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     flex: 1;
-    max-width: 60rem;
+    gap: clamp(0.45rem, 1vw, 0.75rem);
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    list-style: none;
   }
 
   .slot {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    padding: 1.1rem 0.9rem 1.25rem;
+    display: grid;
+    gap: 0.35rem;
+    width: 100%;
+    min-height: 7.2rem;
+    padding: 1rem 0.75rem;
+    color: var(--ink-2);
+    text-align: left;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    cursor: default;
+    cursor: pointer;
     transition:
-      transform 0.3s var(--ease-out-quint),
-      border-color 0.3s var(--ease-out-quint),
-      background 0.3s var(--ease-out-quint);
+      transform 0.25s var(--ease-out-quint),
+      border-color 0.25s var(--ease-out-quint),
+      background 0.25s var(--ease-out-quint);
+  }
+
+  .slot::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -0.85rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    background: var(--brand);
+    clip-path: polygon(50% 100%, 0 0, 100% 0);
+    opacity: 0;
+    transform: translateX(-50%) translateY(-0.25rem);
+    transition:
+      opacity 0.2s var(--ease-out-quint),
+      transform 0.2s var(--ease-out-quint);
   }
 
   .slot:hover,
-  .slot:focus-visible {
-    transform: translateY(-4px);
+  .slot.is-active {
+    transform: translateY(-3px);
     border-color: color-mix(in oklch, var(--brand) 55%, var(--border));
     background: color-mix(in oklch, var(--brand-tint), var(--surface));
-    outline: none;
+  }
+
+  .slot.is-active::after {
+    opacity: 1;
+    transform: translateX(-50%);
   }
 
   .slot-index {
@@ -132,105 +386,141 @@ const cells = [
 
   .slot-name {
     font-family: var(--font-mono);
-    font-size: 0.95rem;
+    font-size: clamp(0.78rem, 0.7rem + 0.35vw, 0.95rem);
     font-weight: 700;
     color: var(--brand-bright);
     letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
   }
 
   .slot-value {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--ink);
     font-family: var(--font-mono);
     font-size: 0.82rem;
-    color: var(--ink);
-    white-space: nowrap;
-    overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .slot-type {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--muted);
+  .detail {
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    padding: clamp(1.1rem, 2vw, 1.35rem);
+    background: color-mix(in oklch, var(--surface), transparent 12%);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-md);
   }
 
-  .slot-desc {
-    font-size: 0.85rem;
-    line-height: 1.5;
-    color: var(--ink-2);
-    max-height: 0;
-    opacity: 0;
-    overflow: hidden;
-    transition:
-      max-height 0.35s var(--ease-out-quint),
-      opacity 0.25s var(--ease-out-quint),
-      margin-top 0.35s var(--ease-out-quint);
-  }
-
-  .slot:hover .slot-desc,
-  .slot:focus-visible .slot-desc {
-    max-height: 8rem;
-    opacity: 1;
-    margin-top: 0.35rem;
-  }
-
-  .wire-foot {
-    margin: clamp(2rem, 4vw, 3rem) auto 0;
-    max-width: 48ch;
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.975rem;
-  }
-
-  .wire-foot code {
-    font-family: var(--font-mono);
-    font-size: 0.85em;
+  .detail-label {
     color: var(--brand-bright);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
   }
 
-  .foot-tag {
+  .detail-head {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .detail h3 {
+    font-size: clamp(1.55rem, 1.2rem + 1.6vw, 2.2rem);
+  }
+
+  .detail-head span {
+    width: fit-content;
+    padding: 0.2rem 0.55rem;
+    color: var(--ink-2);
     font-family: var(--font-mono);
-    font-size: 0.8em;
-    color: var(--on-brand);
-    background: var(--brand);
-    padding: 0.1em 0.5em;
+    font-size: 0.78rem;
+    background: var(--surface-2);
     border-radius: var(--r-pill);
-    font-weight: 600;
+  }
+
+  .detail-desc {
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+
+  .gleam-map {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    overflow-x: auto;
+    color: var(--ink);
+    background: var(--bg-deep);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-sm);
+    font-size: 0.84rem;
+    line-height: 1.55;
+  }
+
+  .gleam-map code {
+    font-family: var(--font-mono);
+  }
+
+  @media (max-width: 900px) {
+    .inspector-body {
+      grid-template-columns: 1fr;
+    }
   }
 
   @media (max-width: 760px) {
+    .presets {
+      grid-template-columns: 1fr;
+    }
+
+    .preset {
+      border-right: 0;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .preset:last-child {
+      border-bottom: 0;
+    }
+
+    .frame-line {
+      display: block;
+    }
+
+    .bracket {
+      display: none;
+    }
+
     .slots {
       grid-template-columns: 1fr;
-      max-width: 32rem;
     }
+
     .slot {
-      flex-direction: row;
-      flex-wrap: wrap;
+      grid-template-columns: auto minmax(8rem, 1fr) auto;
       align-items: baseline;
+      min-height: 0;
       gap: 0.6rem;
       padding: 0.9rem 1rem;
     }
-    .slot-desc {
-      flex-basis: 100%;
+
+    .slot::after {
+      left: auto;
+      right: 1rem;
+      bottom: -0.45rem;
     }
-    .slot:hover .slot-desc,
-    .slot:focus-visible .slot-desc {
-      max-height: 6rem;
-    }
-    .bracket {
-      display: none;
+
+    .slot-value {
+      justify-self: end;
+      white-space: normal;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .slot {
-      transition: border-color 0.2s, background 0.2s;
+    .preset,
+    .slot,
+    .slot::after {
+      transition: none;
     }
+
     .slot:hover,
-    .slot:focus-visible {
+    .slot.is-active {
       transform: none;
-    }
-    .slot-desc {
-      transition: opacity 0.2s;
     }
   }
 </style>
