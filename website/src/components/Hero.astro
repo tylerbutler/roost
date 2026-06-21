@@ -1,7 +1,6 @@
 ---
 import { Image } from 'astro:assets';
 import logo from '../assets/roost-logo.png';
-import CopyCommand from './CopyCommand.astro';
 
 const repo = 'https://github.com/tylerbutler/roost';
 ---
@@ -11,7 +10,7 @@ const repo = 'https://github.com/tylerbutler/roost';
     <div class="hero-copy">
       <p class="status-badge">
         <span class="status-dot" aria-hidden="true"></span>
-        pre-0.1 · API unstable
+        pre-0.1 · no Hex release yet
       </p>
 
       <h1 id="hero-title" class="hero-title">
@@ -26,7 +25,12 @@ const repo = 'https://github.com/tylerbutler/roost';
       </p>
 
       <div class="hero-actions">
-        <CopyCommand command="gleam add roost" />
+        <a class="primary-link" href={`${repo}#readme`} target="_blank" rel="noopener">
+          Read the README
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 17 17 7M9 7h8v8" />
+          </svg>
+        </a>
         <a class="ghost-link" href={repo} target="_blank" rel="noopener">
           View source
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -129,6 +133,23 @@ const repo = 'https://github.com/tylerbutler/roost';
     gap: 1rem 1.5rem;
   }
 
+  .primary-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.25rem;
+    font-weight: 700;
+    color: var(--on-brand);
+    background: var(--brand);
+    border-radius: var(--r-pill);
+    transition: background 0.18s var(--ease-out-quint), transform 0.18s var(--ease-out-quint);
+  }
+
+  .primary-link:hover {
+    background: var(--brand-bright);
+    transform: translateY(-2px);
+  }
+
   .ghost-link {
     display: inline-flex;
     align-items: center;
@@ -226,6 +247,10 @@ const repo = 'https://github.com/tylerbutler/roost';
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .primary-link:hover {
+      transform: none;
+    }
+
     .art-logo,
     .art-glow,
     .status-dot {
