@@ -1,0 +1,25 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import Scope from '../components/Scope.astro';
+import CodeShowcase from '../components/CodeShowcase.astro';
+import WireFormat from '../components/WireFormat.astro';
+import QuickStart from '../components/QuickStart.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout
+  title="roost — Phoenix channel wire protocol helpers for Gleam"
+  description="A pure Gleam package that encodes and decodes the Phoenix channel wire protocol. No sockets, no channel processes — just the frames. You bring the transport."
+>
+  <Nav />
+  <main id="main">
+    <Hero />
+    <Scope />
+    <CodeShowcase />
+    <WireFormat />
+    <QuickStart />
+  </main>
+  <Footer />
+</Layout>

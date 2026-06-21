@@ -1,0 +1,235 @@
+---
+import { Image } from 'astro:assets';
+import logo from '../assets/roost-logo.png';
+import CopyCommand from './CopyCommand.astro';
+
+const repo = 'https://github.com/tylerbutler/roost';
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="container hero-inner">
+    <div class="hero-copy">
+      <p class="status-badge">
+        <span class="status-dot" aria-hidden="true"></span>
+        pre-0.1 · API unstable
+      </p>
+
+      <h1 id="hero-title" class="hero-title">
+        Phoenix channel<br />wire frames,<br /><span class="hl">nothing more.</span>
+      </h1>
+
+      <p class="hero-lede">
+        <strong>roost</strong> is a pure Gleam package that encodes and decodes
+        the Phoenix channel wire protocol. It owns no sockets, no channel
+        processes, no reconnect loops — just the frames. You bring the
+        transport; roost handles the protocol.
+      </p>
+
+      <div class="hero-actions">
+        <CopyCommand command="gleam add roost" />
+        <a class="ghost-link" href={repo} target="_blank" rel="noopener">
+          View source
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 17 17 7M9 7h8v8" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-art" aria-hidden="true">
+      <div class="art-glow"></div>
+      <div class="art-rings">
+        <span></span><span></span><span></span>
+      </div>
+      <Image
+        src={logo}
+        alt=""
+        widths={[280, 480, 640]}
+        sizes="(max-width: 880px) 60vw, 32rem"
+        class="art-logo"
+        loading="eager"
+      />
+    </div>
+  </div>
+
+  <p class="hero-alt sr-only">
+    The roost logo: an orange bird settling into a woven slate nest.
+  </p>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    padding-block: clamp(3rem, 7vw, 6rem) var(--space-section);
+    overflow: hidden;
+  }
+
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    align-items: center;
+    gap: clamp(2rem, 5vw, 4.5rem);
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    margin-bottom: 1.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-pill);
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--brand);
+    box-shadow: 0 0 0 0 var(--brand-glow);
+    animation: pulse 2.6s var(--ease-out-quint) infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 var(--brand-glow); }
+    70% { box-shadow: 0 0 0 7px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+
+  .hero-title {
+    font-size: clamp(2.6rem, 1.4rem + 5vw, 5rem);
+    letter-spacing: -0.025em;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-title .hl {
+    color: var(--brand);
+  }
+
+  .hero-lede {
+    max-width: 46ch;
+    font-size: clamp(1.05rem, 1rem + 0.4vw, 1.2rem);
+    color: var(--ink-2);
+    margin-bottom: 2.25rem;
+  }
+
+  .hero-lede strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+  }
+
+  .ghost-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: var(--ink);
+    border-bottom: 1px solid var(--border-strong);
+    padding-bottom: 2px;
+    transition: color 0.18s var(--ease-out-quint), border-color 0.18s var(--ease-out-quint);
+  }
+
+  .ghost-link:hover {
+    color: var(--brand-bright);
+    border-color: var(--brand);
+  }
+
+  /* ---- Art ---- */
+  .hero-art {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+  }
+
+  .art-logo {
+    position: relative;
+    z-index: 2;
+    width: min(100%, 30rem);
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 24px 60px oklch(0 0 0 / 0.5));
+    animation: settle 1.2s var(--ease-out-expo) both;
+  }
+
+  @keyframes settle {
+    from { opacity: 0; transform: translateY(-14px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .art-glow {
+    position: absolute;
+    inset: 8% 8% 18%;
+    z-index: 1;
+    background: radial-gradient(circle at 50% 42%, var(--brand-glow), transparent 62%);
+    filter: blur(18px);
+    animation: glow 6s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from { opacity: 0.7; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1.04); }
+  }
+
+  .art-rings {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  .art-rings span {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid var(--border-soft);
+    opacity: 0.5;
+  }
+  .art-rings span:nth-child(1) { width: 62%; height: 62%; }
+  .art-rings span:nth-child(2) { width: 82%; height: 82%; border-color: color-mix(in oklch, var(--weave) 30%, transparent); }
+  .art-rings span:nth-child(3) { width: 100%; height: 100%; opacity: 0.3; }
+
+  .sr-only,
+  .hero-alt {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (max-width: 880px) {
+    .hero-inner {
+      grid-template-columns: 1fr;
+      text-align: left;
+    }
+    .hero-art {
+      order: -1;
+      max-width: 22rem;
+      margin-inline: auto;
+    }
+    .hero-lede { max-width: 56ch; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .art-logo,
+    .art-glow,
+    .status-dot {
+      animation: none;
+    }
+  }
+</style>

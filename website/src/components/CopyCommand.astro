@@ -1,0 +1,127 @@
+---
+interface Props {
+  command: string;
+  label?: string;
+}
+const { command, label = 'Copy install command' } = Astro.props;
+---
+
+<div class="copy-cmd" data-copy={command}>
+  <span class="copy-prompt" aria-hidden="true">$</span>
+  <code class="copy-text">{command}</code>
+  <button type="button" class="copy-btn" aria-label={label}>
+    <svg class="i-copy" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+    <svg class="i-check" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+    <span class="copy-word">Copy</span>
+  </button>
+</div>
+
+<style>
+  .copy-cmd {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.6rem 0.6rem 1.05rem;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    font-family: var(--font-mono);
+    max-width: 100%;
+  }
+
+  .copy-prompt {
+    color: var(--brand);
+    font-weight: 700;
+    user-select: none;
+  }
+
+  .copy-text {
+    color: var(--ink);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .copy-text::-webkit-scrollbar { display: none; }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    padding: 0.4rem 0.7rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink-2);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition:
+      color 0.18s var(--ease-out-quint),
+      background 0.18s var(--ease-out-quint),
+      border-color 0.18s var(--ease-out-quint);
+  }
+
+  .copy-btn:hover {
+    color: var(--ink);
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+  }
+
+  .i-check {
+    display: none;
+    color: var(--brand-bright);
+  }
+
+  .copy-cmd.is-copied .i-copy {
+    display: none;
+  }
+  .copy-cmd.is-copied .i-check {
+    display: block;
+  }
+  .copy-cmd.is-copied .copy-btn {
+    color: var(--brand-bright);
+    border-color: color-mix(in oklch, var(--brand) 50%, var(--border));
+  }
+</style>
+
+<script>
+  function initCopyButtons() {
+    document.querySelectorAll<HTMLElement>('.copy-cmd').forEach((el) => {
+      const btn = el.querySelector<HTMLButtonElement>('.copy-btn');
+      const word = el.querySelector<HTMLElement>('.copy-word');
+      if (!btn || el.dataset.bound) return;
+      el.dataset.bound = 'true';
+      btn.addEventListener('click', async () => {
+        const text = el.dataset.copy ?? '';
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          const r = document.createRange();
+          const node = el.querySelector('.copy-text');
+          if (node) {
+            r.selectNodeContents(node);
+            const sel = window.getSelection();
+            sel?.removeAllRanges();
+            sel?.addRange(r);
+          }
+        }
+        el.classList.add('is-copied');
+        if (word) word.textContent = 'Copied';
+        window.setTimeout(() => {
+          el.classList.remove('is-copied');
+          if (word) word.textContent = 'Copy';
+        }, 1800);
+      });
+    });
+  }
+  initCopyButtons();
+  document.addEventListener('astro:page-load', initCopyButtons);
+</script>
