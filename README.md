@@ -2,12 +2,19 @@
 
 Phoenix channel wire protocol helpers for Gleam.
 
-> **Status:** pre-0.1. API unstable.
+> **Status:** pre-0.1. API unstable. Not published on Hex until 1.0.
 
-## Install
+## Availability
 
-```sh
-gleam add roost
+`roost` will not be published on Hex until 1.0. There is intentionally no
+Hex install command yet.
+
+Until the first stable release, add it as a Git dependency in `gleam.toml`.
+Pin `ref` to a commit, tag, or branch that matches the API you are testing.
+
+```toml
+[dependencies]
+roost = { git = "https://github.com/tylerbutler/roost.git", ref = "main" }
 ```
 
 ## Quick start

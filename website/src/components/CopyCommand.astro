@@ -3,7 +3,7 @@ interface Props {
   command: string;
   label?: string;
 }
-const { command, label = 'Copy install command' } = Astro.props;
+const { command, label = 'Copy command' } = Astro.props;
 ---
 
 <div class="copy-cmd" data-copy={command}>
