@@ -1,4 +1,5 @@
 ---
+import { Code } from 'astro:components';
 import CopyCommand from './CopyCommand.astro';
 
 const repo = 'https://github.com/tylerbutler/roost';
@@ -7,18 +8,21 @@ const steps = [
     n: '1',
     t: 'Add a Git dependency',
     d: 'roost will not be published on Hex until 1.0. Add it from Git and pin ref to the commit, tag, or branch you are testing.',
+    lang: 'toml',
     code: '[dependencies]\nroost = { git = "https://github.com/tylerbutler/roost.git", ref = "main" }',
   },
   {
     n: '2',
     t: 'Import & encode',
     d: 'Build a frame with labelled arguments and hand the string to whatever socket you already use.',
+    lang: 'gleam',
     code: 'import roost\n\nroost.encode(\n  join_ref: Some("1"),\n  ref: Some("1"),\n  topic: "room:lobby",\n  event: "phx_join",\n  payload: payload,\n)',
   },
   {
     n: '3',
     t: 'Decode what comes back',
     d: 'Turn inbound socket text into a typed Incoming value, and handle InvalidJson / InvalidFormat as ordinary results.',
+    lang: 'gleam',
     code: 'case roost.decode(text) {\n  Ok(incoming) -> handle(incoming)\n  Error(err) -> log(err)\n}',
   },
 ];
@@ -39,7 +43,11 @@ const steps = [
             <h3 class="step-t">{s.t}</h3>
             <p class="step-d">{s.d}</p>
             {s.cmd && <CopyCommand command={s.cmd} />}
-            {s.code && <pre class="step-code"><code>{s.code}</code></pre>}
+            {s.code && (
+              <div class="step-code">
+                <Code code={s.code} lang={s.lang} theme="night-owl" />
+              </div>
+            )}
           </div>
         </li>
       ))}
@@ -114,19 +122,24 @@ const steps = [
 
   .step-code {
     margin: 0;
-    padding: 1.1rem 1.3rem;
     background: var(--bg-deep);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     overflow-x: auto;
+    max-width: 38rem;
+  }
+
+  .step-code :global(.astro-code) {
+    margin: 0;
+    padding: 1.1rem 1.3rem;
+    background: transparent !important;
     font-size: 0.85rem;
     line-height: 1.65;
     color: var(--ink);
-    max-width: 38rem;
   }
-  .step-code code {
+
+  .step-code :global(.astro-code code) {
     font-family: var(--font-mono);
-    color: inherit;
   }
 
   .start-cta {
