@@ -2,7 +2,7 @@
 
 Phoenix channel wire protocol helpers for Gleam.
 
-> **Status:** pre-0.1. API unstable. Not published on Hex until 1.0.
+> **Status:** pre-1.0. API unstable. Not published on Hex until 1.0.
 
 ## Availability
 
