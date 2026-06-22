@@ -3,6 +3,7 @@ import { Image } from 'astro:assets';
 import logo from '../assets/roost-logo.png';
 
 const repo = 'https://github.com/tylerbutler/roost';
+const phoenixChannels = 'https://hexdocs.pm/phoenix/channels.html';
 ---
 
 <section class="hero" aria-labelledby="hero-title">
@@ -10,7 +11,7 @@ const repo = 'https://github.com/tylerbutler/roost';
     <div class="hero-copy">
       <p class="status-badge">
         <span class="status-dot" aria-hidden="true"></span>
-        pre-0.1 · no Hex release yet
+        pre-1.0 · no Hex release yet
       </p>
 
       <h1 id="hero-title" class="hero-title">
@@ -19,9 +20,10 @@ const repo = 'https://github.com/tylerbutler/roost';
 
       <p class="hero-lede">
         <strong>roost</strong> is a pure Gleam package that encodes and decodes
-        the Phoenix channel wire protocol. It owns no sockets, no channel
-        processes, no reconnect loops — just the frames. You bring the
-        transport; roost handles the protocol.
+        the <a href={phoenixChannels} target="_blank" rel="noopener">Phoenix
+        channel wire protocol</a>. It owns no sockets, no channel processes, no
+        reconnect loops — just the frames. You bring the transport; roost
+        handles the protocol.
       </p>
 
       <div class="hero-actions">
@@ -124,6 +126,18 @@ const repo = 'https://github.com/tylerbutler/roost';
   .hero-lede strong {
     color: var(--ink);
     font-weight: 600;
+  }
+
+  .hero-lede a {
+    color: var(--ink);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-strong);
+    transition: color 0.18s var(--ease-out-quint), border-color 0.18s var(--ease-out-quint);
+  }
+
+  .hero-lede a:hover {
+    color: var(--brand-bright);
+    border-color: var(--brand);
   }
 
   .hero-actions {

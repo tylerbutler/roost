@@ -23,7 +23,7 @@ const does = [
 ];
 
 const youBring = [
-  { t: 'Opening & closing sockets', d: 'roost never touches a WebSocket. Use Mist, Gleam JS, or any transport.' },
+  { t: 'Opening & closing sockets', d: 'roost never touches a WebSocket. Use Mist or any Erlang transport.' },
   { t: 'Channel processes & lifecycle', d: 'Join / leave state machines and supervision live in your runtime.' },
   { t: 'Ref counters & join refs', d: 'Refs are plain strings on the wire; the monotonic counter is yours.' },
   { t: 'Reconnects, rejoins & timeouts', d: 'Backoff, retry, and rejoin policy are application decisions.' },
@@ -34,14 +34,15 @@ const youBring = [
 <section class="scope" id="scope" aria-labelledby="scope-title">
   <div class="container">
     <div class="scope-head">
-      <p class="eyebrow"><span class="eyebrow-tick">//</span> the boundary is the feature</p>
+      <p class="eyebrow"><span class="eyebrow-tick">//</span> scope, on purpose</p>
       <h2 id="scope-title">
-        roost does one thing.<br />It does it <span class="hl">completely</span>.
+        The protocol line,<br />drawn <span class="hl">clearly</span>.
       </h2>
       <p class="scope-sub">
-        Most of evaluating a small library is finding out where it stops. So
-        here's the line, drawn on purpose — what roost owns, and what stays
-        yours.
+        roost handles the Phoenix channel wire format: encode the frames you
+        send, decode the frames you receive, and give reserved events names.
+        Sockets, processes, refs, reconnects, scheduling, and Presence stay in
+        your application.
       </p>
     </div>
 

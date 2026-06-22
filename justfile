@@ -53,6 +53,14 @@ check:
 docs:
     gleam docs build
 
+# Generate website reference docs from Gleam docs metadata
+site-reference: docs
+    cd website && pnpm generate:reference
+
+# Build website
+site-build: site-reference
+    cd website && pnpm build
+
 # === CHANGELOG ===
 
 # Create a new changelog entry
@@ -82,4 +90,4 @@ ci: format-check check test build-strict
 alias pr := ci
 
 # Run extended checks for main branch
-main: ci docs
+main: ci site-build

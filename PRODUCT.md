@@ -15,9 +15,9 @@ not do, so they can decide in under a minute whether it fits their stack.
 
 ## Product Purpose
 
-`roost` is a pure Gleam package that encodes and decodes the Phoenix channel
-wire protocol (`[join_ref, ref, topic, event, payload]`). It is runtime-neutral
-and protocol-only: it owns no sockets, channel processes, refs, reconnects, or
+`roost` is an Erlang-targeted Gleam package that encodes and decodes the
+Phoenix channel wire protocol (`[join_ref, ref, topic, event, payload]`). It is
+protocol-only: it owns no sockets, channel processes, refs, reconnects, or
 heartbeat actors. The landing page exists to let a qualified visitor
 self-qualify fast — to clearly communicate the scope (what it does AND what it
 intentionally leaves to the caller), make clear that Hex publication waits for

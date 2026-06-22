@@ -3,6 +3,7 @@ import { Image } from 'astro:assets';
 import logo from '../assets/roost-logo.png';
 
 const repo = 'https://github.com/tylerbutler/roost';
+const owner = 'https://github.com/tylerbutler';
 const year = new Date().getFullYear();
 ---
 
@@ -24,8 +25,8 @@ const year = new Date().getFullYear();
   </div>
 
   <div class="container footer-base">
-    <p>© {year} · roost · pre-0.1, no Hex release yet</p>
-    <p class="footer-note">A protocol codec — runtime-neutral, on purpose.</p>
+    <p>© {year} · <a href={owner} target="_blank" rel="noopener">tylerbutler</a> · pre-1.0, no Hex release yet</p>
+    <p class="footer-note">A protocol codec for Erlang-targeted Gleam.</p>
   </div>
 </footer>
 
@@ -83,7 +84,8 @@ const year = new Date().getFullYear();
   .footer-links a {
     transition: color 0.18s var(--ease-out-quint);
   }
-  .footer-links a:hover {
+  .footer-links a:hover,
+  .footer-base a:hover {
     color: var(--brand-bright);
   }
 

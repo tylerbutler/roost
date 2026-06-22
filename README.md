@@ -2,7 +2,7 @@
 
 Phoenix channel wire protocol helpers for Gleam.
 
-> **Status:** pre-0.1. API unstable. Not published on Hex until 1.0.
+> **Status:** pre-1.0. API unstable. Not published on Hex until 1.0.
 
 ## Availability
 
@@ -51,10 +51,8 @@ pub fn join_message() {
 
 ## JavaScript and TypeScript clients
 
-Gleam can compile this package to JavaScript, but `roost` is still only a
-Phoenix wire-protocol codec. It can be useful as the codec inside a custom
-JavaScript or TypeScript client, especially when you want runtime-neutral
-protocol helpers.
+`roost` targets Erlang/OTP only. It is not intended to be a JavaScript or
+TypeScript Phoenix client.
 
 For a full browser or Node.js Phoenix client, prefer the official Phoenix
 JavaScript client. It already handles WebSocket lifecycle, channel state,
