@@ -26,9 +26,10 @@ gleam test -- test/frame_test.gleam --test-name-filter="encodes a phx_join"
 
 ## High-level architecture
 
-`roost` is a pure Gleam package for encoding and decoding the Phoenix channel
-wire protocol. It does not own sockets, channel processes, reconnect behavior,
-or runtime supervision; callers provide transport and process management.
+`roost` is an Erlang-targeted Gleam package for encoding and decoding the
+Phoenix channel wire protocol. It does not own sockets, channel processes,
+reconnect behavior, or runtime supervision; callers provide transport and
+process management.
 
 The public API centers on:
 
@@ -41,7 +42,7 @@ The public API centers on:
 
 ## Key conventions
 
-- Keep the package runtime-neutral and protocol-only. Do not add transport,
+- Keep the package protocol-only. Do not add transport,
   channel lifecycle, heartbeat actors, ref counters, or runtime-specific APIs.
 - Phoenix refs are `String` values on the wire. Any monotonic counter or ref
   generation belongs to the caller.
