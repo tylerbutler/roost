@@ -66,3 +66,22 @@ Check whether an event name is a Phoenix-reserved system event.
 ```gleam
 pub fn is_system_event(String) -> Bool
 ```
+
+### `matches_join_reply`
+
+Check whether an inbound frame is the `phx_reply` for the given join.
+
+```gleam
+pub fn matches_join_reply(
+  frame.Incoming,
+  String
+) -> Bool
+```
+
+### `reply_status`
+
+Interpret a Phoenix `phx_reply` payload's `status`.
+
+```gleam
+pub fn reply_status(frame.Incoming) -> Result(Nil, String)
+```

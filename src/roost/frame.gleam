@@ -189,6 +189,38 @@ fn decode_frame_field(
   |> result.replace_error(InvalidFormat(error_message))
 }
 
+/// Check whether an inbound frame is the `phx_reply` for the given join.
+///
+/// True when the event is `phx_reply` and the frame's `ref` matches the
+/// `join_ref` the join was sent with. This is the Phoenix correlation rule for
+/// pairing a join request with its reply.
+pub fn matches_join_reply(incoming: Incoming, join_ref: String) -> Bool {
+  incoming.event == reply_event && incoming.ref == Some(join_ref)
+}
+
+/// Interpret a Phoenix `phx_reply` payload's `status`.
+///
+/// Returns `Ok(Nil)` when the status is `"ok"` (joined), or `Error(reason)`
+/// when the join was rejected. The reason comes from `response.reason` if
+/// present, otherwise the status string.
+pub fn reply_status(incoming: Incoming) -> Result(Nil, String) {
+  let status =
+    incoming.payload
+    |> decode.run(decode.at(["status"], decode.string))
+    |> result.unwrap("error")
+
+  case status {
+    "ok" -> Ok(Nil)
+    _ -> {
+      let reason =
+        incoming.payload
+        |> decode.run(decode.at(["response", "reason"], decode.string))
+        |> result.unwrap(status)
+      Error(reason)
+    }
+  }
+}
+
 /// Check whether an event name is a Phoenix-reserved system event.
 pub fn is_system_event(event: String) -> Bool {
   [
