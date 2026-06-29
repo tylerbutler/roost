@@ -44,3 +44,13 @@ pub fn encode_reply(
 pub fn is_system_event(event: String) -> Bool {
   frame.is_system_event(event)
 }
+
+/// Check whether an inbound frame is the `phx_reply` for the given join.
+pub fn matches_join_reply(incoming: Incoming, join_ref: String) -> Bool {
+  frame.matches_join_reply(incoming, join_ref)
+}
+
+/// Interpret a Phoenix `phx_reply` payload's `status`.
+pub fn reply_status(incoming: Incoming) -> Result(Nil, String) {
+  frame.reply_status(incoming)
+}

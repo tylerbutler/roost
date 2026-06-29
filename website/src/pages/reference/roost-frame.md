@@ -175,3 +175,30 @@ Check whether an event name is a Phoenix-reserved system event.
 ```gleam
 pub fn is_system_event(String) -> Bool
 ```
+
+### `matches_join_reply`
+
+Check whether an inbound frame is the `phx_reply` for the given join.
+
+ True when the event is `phx_reply` and the frame's `ref` matches the
+ `join_ref` the join was sent with. This is the Phoenix correlation rule for
+ pairing a join request with its reply.
+
+```gleam
+pub fn matches_join_reply(
+  Incoming,
+  String
+) -> Bool
+```
+
+### `reply_status`
+
+Interpret a Phoenix `phx_reply` payload's `status`.
+
+ Returns `Ok(Nil)` when the status is `"ok"` (joined), or `Error(reason)`
+ when the join was rejected. The reason comes from `response.reason` if
+ present, otherwise the status string.
+
+```gleam
+pub fn reply_status(Incoming) -> Result(Nil, String)
+```

@@ -76,6 +76,50 @@ pub fn frame_tests() {
         f.event |> expect.to_equal("update")
       }),
     ]),
+    describe("matches_join_reply", [
+      it("matches a phx_reply with the join ref", fn() {
+        let assert Ok(f) =
+          frame.decode(
+            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\"}]",
+          )
+        frame.matches_join_reply(f, "1") |> expect.to_equal(True)
+      }),
+      it("rejects a mismatched join ref", fn() {
+        let assert Ok(f) =
+          frame.decode(
+            "[\"2\",\"2\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\"}]",
+          )
+        frame.matches_join_reply(f, "1") |> expect.to_equal(False)
+      }),
+      it("rejects non-reply events", fn() {
+        let assert Ok(f) =
+          frame.decode("[\"1\",\"1\",\"room:lobby\",\"new_msg\",{}]")
+        frame.matches_join_reply(f, "1") |> expect.to_equal(False)
+      }),
+    ]),
+    describe("reply_status", [
+      it("returns Ok when joined", fn() {
+        let assert Ok(f) =
+          frame.decode(
+            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\",\"response\":{}}]",
+          )
+        frame.reply_status(f) |> expect.to_equal(Ok(Nil))
+      }),
+      it("returns Error with response.reason when rejected", fn() {
+        let assert Ok(f) =
+          frame.decode(
+            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"error\",\"response\":{\"reason\":\"unauthorized\"}}]",
+          )
+        frame.reply_status(f) |> expect.to_equal(Error("unauthorized"))
+      }),
+      it("falls back to the status string without a reason", fn() {
+        let assert Ok(f) =
+          frame.decode(
+            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"error\"}]",
+          )
+        frame.reply_status(f) |> expect.to_equal(Error("error"))
+      }),
+    ]),
     describe("is_system_event", [
       it("recognises phx_join", fn() {
         frame.is_system_event(frame.join_event) |> expect.to_equal(True)
@@ -113,6 +157,13 @@ pub fn frame_tests() {
         )
 
         roost.is_system_event(frame.reply_event) |> expect.to_equal(True)
+
+        let assert Ok(reply) =
+          roost.decode(
+            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\"}]",
+          )
+        roost.matches_join_reply(reply, "1") |> expect.to_equal(True)
+        roost.reply_status(reply) |> expect.to_equal(Ok(Nil))
       }),
       it("forwards encode and decode", fn() {
         let encoded =
