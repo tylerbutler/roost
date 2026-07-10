@@ -3,8 +3,7 @@ version = "0.1.0"
 description = "Phoenix channel wire protocol helpers for Gleam"
 licences = ["MIT"]
 repository = { type = "github", user = "tylerbutler", repo = "roost" }
-gleam = ">= 1.7.0"
-target = "erlang"
+gleam = ">= 1.9.0"
 
 [dependencies]
 gleam_stdlib = ">= 0.48.0 and < 2.0.0"

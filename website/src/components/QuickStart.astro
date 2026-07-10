@@ -16,7 +16,7 @@ const steps = [
     t: 'Import & encode',
     d: 'Build a typed frame, encode it in the correct direction, and hand the resulting text or bytes to your socket.',
     lang: 'gleam',
-    code: 'import roost\nimport roost/frame\n\nlet message = frame.Push(\n  join_ref: Some("1"),\n  ref: Some("1"),\n  topic: "room:lobby",\n  event: "phx_join",\n  payload: frame.JsonPayload(payload),\n)\n\nroost.encode(message, direction: frame.ClientToServer)',
+    code: 'import gleam/option.{Some}\nimport roost\nimport roost/frame\n\nlet message = frame.Push(\n  join_ref: Some("1"),\n  ref: Some("1"),\n  topic: "room:lobby",\n  event: "phx_join",\n  payload: frame.JsonPayload(payload),\n)\n\nroost.encode(message, direction: frame.ClientToServer)',
   },
   {
     n: '3',

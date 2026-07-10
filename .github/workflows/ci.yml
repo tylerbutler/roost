@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [erlang, javascript]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          gleam-version: "1.9.0"
+
+      - run: gleam deps download
+
+      - if: matrix.target == 'erlang'
+        run: gleam format --check src test
+
+      - run: gleam check --target ${{ matrix.target }}
+
+      - run: gleam test --target ${{ matrix.target }}
+
+      - run: gleam build --target ${{ matrix.target }} --warnings-as-errors
