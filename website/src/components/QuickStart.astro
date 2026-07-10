@@ -14,16 +14,16 @@ const steps = [
   {
     n: '2',
     t: 'Import & encode',
-    d: 'Build a frame with labelled arguments and hand the string to whatever socket you already use.',
+    d: 'Build a typed frame, encode it in the correct direction, and hand the resulting text or bytes to your socket.',
     lang: 'gleam',
-    code: 'import roost\n\nroost.encode(\n  join_ref: Some("1"),\n  ref: Some("1"),\n  topic: "room:lobby",\n  event: "phx_join",\n  payload: payload,\n)',
+    code: 'import roost\nimport roost/frame\n\nlet message = frame.Push(\n  join_ref: Some("1"),\n  ref: Some("1"),\n  topic: "room:lobby",\n  event: "phx_join",\n  payload: frame.JsonPayload(payload),\n)\n\nroost.encode(message, direction: frame.ClientToServer)',
   },
   {
     n: '3',
     t: 'Decode what comes back',
-    d: 'Turn inbound socket text into a typed Incoming value, and handle InvalidJson / InvalidFormat as ordinary results.',
+    d: 'Wrap the socket payload as TextData or BinaryData, then decode it into the same typed frame model.',
     lang: 'gleam',
-    code: 'case roost.decode(text) {\n  Ok(incoming) -> handle(incoming)\n  Error(err) -> log(err)\n}',
+    code: 'case roost.decode(data, direction: frame.ServerToClient) {\n  Ok(incoming) -> handle(incoming)\n  Error(err) -> log(err)\n}',
   },
 ];
 ---

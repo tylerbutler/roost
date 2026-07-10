@@ -10,191 +10,285 @@ import startest/expect
 
 pub fn frame_tests() {
   describe("frame", [
-    describe("encode", [
+    describe("text encode", [
       it("encodes client outbound fixtures", fn() {
         fixtures.client_outbound()
-        |> expect_encoded_frames
+        |> list.each(fn(case_) {
+          frame.Push(
+            join_ref: case_.join_ref,
+            ref: case_.ref,
+            topic: case_.topic,
+            event: case_.event,
+            payload: frame.JsonPayload(case_.payload),
+          )
+          |> frame.encode(direction: frame.ClientToServer)
+          |> expect.to_equal(Ok(frame.TextData(case_.encoded)))
+        })
       }),
       it("encodes server outbound fixtures", fn() {
         fixtures.server_outbound()
-        |> expect_encoded_frames
+        |> list.each(fn(case_) {
+          frame.Push(
+            join_ref: case_.join_ref,
+            ref: case_.ref,
+            topic: case_.topic,
+            event: case_.event,
+            payload: frame.JsonPayload(case_.payload),
+          )
+          |> frame.encode(direction: frame.ServerToClient)
+          |> expect.to_equal(Ok(frame.TextData(case_.encoded)))
+        })
       }),
-    ]),
-    describe("encode_heartbeat", [
-      it("uses the phoenix topic with heartbeat event", fn() {
-        frame.encode_heartbeat("42")
-        |> expect.to_equal("[null,\"42\",\"phoenix\",\"heartbeat\",{}]")
-      }),
-    ]),
-    describe("encode_reply", [
       it("encodes reply fixtures", fn() {
         fixtures.replies()
         |> list.each(fn(case_) {
-          frame.encode_reply(
+          frame.Reply(
             join_ref: case_.join_ref,
             ref: case_.ref,
             topic: case_.topic,
             status: reply_status(case_.status),
-            response: case_.response,
+            response: frame.JsonPayload(case_.response),
           )
-          |> expect.to_equal(case_.encoded)
+          |> frame.encode(direction: frame.ServerToClient)
+          |> expect.to_equal(Ok(frame.TextData(case_.encoded)))
         })
       }),
+      it("encodes broadcasts as the common JSON array", fn() {
+        frame.Broadcast(
+          topic: "room:lobby",
+          event: "tick",
+          payload: frame.JsonPayload(
+            json.object([
+              #("n", json.int(42)),
+            ]),
+          ),
+        )
+        |> frame.encode(direction: frame.ServerToClient)
+        |> expect.to_equal(
+          Ok(frame.TextData("[null,null,\"room:lobby\",\"tick\",{\"n\":42}]")),
+        )
+      }),
+      it("rejects client reply and broadcast frames", fn() {
+        frame.Reply(
+          join_ref: None,
+          ref: "1",
+          topic: "room:lobby",
+          status: frame.StatusOk,
+          response: frame.JsonPayload(json.object([])),
+        )
+        |> frame.encode(direction: frame.ClientToServer)
+        |> expect.to_be_error()
+
+        frame.Broadcast(
+          topic: "room:lobby",
+          event: "tick",
+          payload: frame.JsonPayload(json.object([])),
+        )
+        |> frame.encode(direction: frame.ClientToServer)
+        |> expect.to_be_error()
+        Nil
+      }),
     ]),
-    describe("decode", [
-      it("decodes inbound common fixtures", fn() {
-        fixtures.inbound_common()
+    describe("text decode", [
+      it("decodes client outbound fixtures", fn() {
+        fixtures.client_outbound()
         |> list.each(fn(case_) {
-          let assert Ok(f) = frame.decode(case_.encoded)
-          f.join_ref |> expect.to_equal(case_.join_ref)
-          f.ref |> expect.to_equal(case_.ref)
-          f.topic |> expect.to_equal(case_.topic)
-          f.event |> expect.to_equal(case_.event)
-          f.payload |> expect.to_equal(fixture_payload(case_.payload))
+          let assert Ok(frame.Push(
+            join_ref: join_ref,
+            ref: ref,
+            topic: topic,
+            event: event,
+            payload: frame.JsonPayload(payload),
+          )) =
+            frame.decode(
+              frame.TextData(case_.encoded),
+              direction: frame.ClientToServer,
+            )
+
+          join_ref |> expect.to_equal(case_.join_ref)
+          ref |> expect.to_equal(case_.ref)
+          topic |> expect.to_equal(case_.topic)
+          event |> expect.to_equal(case_.event)
+          payload |> expect.to_equal(fixture_payload(case_.payload))
+        })
+      }),
+      it("decodes server pushes as Push frames", fn() {
+        fixtures.server_outbound()
+        |> list.each(fn(case_) {
+          let assert Ok(frame.Push(
+            join_ref: join_ref,
+            ref: ref,
+            topic: topic,
+            event: event,
+            payload: frame.JsonPayload(payload),
+          )) =
+            frame.decode(
+              frame.TextData(case_.encoded),
+              direction: frame.ServerToClient,
+            )
+
+          join_ref |> expect.to_equal(case_.join_ref)
+          ref |> expect.to_equal(case_.ref)
+          topic |> expect.to_equal(case_.topic)
+          event |> expect.to_equal(case_.event)
+          payload |> expect.to_equal(fixture_payload(case_.payload))
+        })
+      }),
+      it("normalises text phx_reply frames", fn() {
+        fixtures.replies()
+        |> list.each(fn(case_) {
+          let assert Ok(frame.Reply(
+            join_ref: join_ref,
+            ref: ref,
+            topic: topic,
+            status: status,
+            response: frame.JsonPayload(response),
+          )) =
+            frame.decode(
+              frame.TextData(case_.encoded),
+              direction: frame.ServerToClient,
+            )
+
+          join_ref |> expect.to_equal(case_.join_ref)
+          ref |> expect.to_equal(case_.ref)
+          topic |> expect.to_equal(case_.topic)
+          status |> expect.to_equal(reply_status(case_.status))
+          response |> expect.to_equal(fixture_payload(case_.response))
         })
       }),
       it("classifies invalid frame fixtures", fn() {
         fixtures.invalid_frames()
         |> list.each(fn(case_) {
-          let assert Error(reason) = frame.decode(case_.encoded)
+          let assert Error(reason) =
+            frame.decode(
+              frame.TextData(case_.encoded),
+              direction: frame.ClientToServer,
+            )
           decode_reason_matches(case_.reason, reason) |> expect.to_equal(True)
         })
       }),
-      it("round-trips encode -> decode", fn() {
-        let encoded =
-          frame.encode(
+      it("round-trips a JSON push", fn() {
+        let outgoing =
+          frame.Push(
             join_ref: Some("3"),
             ref: Some("5"),
             topic: "doc:abc",
             event: "update",
-            payload: json.object([#("delta", json.string("text"))]),
+            payload: frame.JsonPayload(
+              json.object([
+                #("delta", json.string("text")),
+              ]),
+            ),
           )
-        let assert Ok(f) = frame.decode(encoded)
-        f.join_ref |> expect.to_equal(Some("3"))
-        f.ref |> expect.to_equal(Some("5"))
-        f.topic |> expect.to_equal("doc:abc")
-        f.event |> expect.to_equal("update")
+        let assert Ok(encoded) =
+          frame.encode(outgoing, direction: frame.ClientToServer)
+        let assert Ok(frame.Push(
+          join_ref: Some("3"),
+          ref: Some("5"),
+          topic: "doc:abc",
+          event: "update",
+          ..,
+        )) = frame.decode(encoded, direction: frame.ClientToServer)
+        Nil
       }),
     ]),
-    describe("matches_join_reply", [
-      it("matches a phx_reply with the join ref", fn() {
-        let assert Ok(f) =
-          frame.decode(
-            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\"}]",
-          )
-        frame.matches_join_reply(f, "1") |> expect.to_equal(True)
-      }),
-      it("rejects a mismatched join ref", fn() {
-        let assert Ok(f) =
-          frame.decode(
-            "[\"2\",\"2\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\"}]",
-          )
-        frame.matches_join_reply(f, "1") |> expect.to_equal(False)
-      }),
-      it("rejects non-reply events", fn() {
-        let assert Ok(f) =
-          frame.decode("[\"1\",\"1\",\"room:lobby\",\"new_msg\",{}]")
-        frame.matches_join_reply(f, "1") |> expect.to_equal(False)
+    describe("heartbeat", [
+      it("builds the Phoenix heartbeat frame", fn() {
+        frame.heartbeat("42")
+        |> frame.encode(direction: frame.ClientToServer)
+        |> expect.to_equal(
+          Ok(frame.TextData("[null,\"42\",\"phoenix\",\"heartbeat\",{}]")),
+        )
       }),
     ]),
-    describe("reply_status", [
-      it("returns Ok when joined", fn() {
-        let assert Ok(f) =
+    describe("reply helpers", [
+      it("matches a reply with the join ref", fn() {
+        let assert Ok(reply) =
           frame.decode(
-            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\",\"response\":{}}]",
+            frame.TextData(
+              "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\",\"response\":{}}]",
+            ),
+            direction: frame.ServerToClient,
           )
-        frame.reply_status(f) |> expect.to_equal(Ok(Nil))
+        frame.matches_join_reply(reply, "1") |> expect.to_equal(True)
+        frame.matches_join_reply(reply, "2") |> expect.to_equal(False)
       }),
-      it("returns Error with response.reason when rejected", fn() {
-        let assert Ok(f) =
+      it("rejects non-reply frames", fn() {
+        let assert Ok(push) =
           frame.decode(
-            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"error\",\"response\":{\"reason\":\"unauthorized\"}}]",
+            frame.TextData("[\"1\",\"1\",\"room:lobby\",\"new_msg\",{}]"),
+            direction: frame.ClientToServer,
           )
-        frame.reply_status(f) |> expect.to_equal(Error("unauthorized"))
+        frame.matches_join_reply(push, "1") |> expect.to_equal(False)
       }),
-      it("falls back to the status string without a reason", fn() {
-        let assert Ok(f) =
+      it("returns Ok for successful replies", fn() {
+        let assert Ok(reply) =
           frame.decode(
-            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"error\"}]",
+            frame.TextData(
+              "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\",\"response\":{}}]",
+            ),
+            direction: frame.ServerToClient,
           )
-        frame.reply_status(f) |> expect.to_equal(Error("error"))
+        frame.reply_status(reply) |> expect.to_equal(Ok(Nil))
+      }),
+      it("uses response.reason for JSON errors", fn() {
+        let assert Ok(reply) =
+          frame.decode(
+            frame.TextData(
+              "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"error\",\"response\":{\"reason\":\"unauthorized\"}}]",
+            ),
+            direction: frame.ServerToClient,
+          )
+        frame.reply_status(reply) |> expect.to_equal(Error("unauthorized"))
+      }),
+      it("preserves custom reply status strings", fn() {
+        let assert Ok(reply) =
+          frame.decode(
+            frame.TextData(
+              "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"timeout\",\"response\":{}}]",
+            ),
+            direction: frame.ServerToClient,
+          )
+        frame.reply_status(reply) |> expect.to_equal(Error("timeout"))
       }),
     ]),
-    describe("is_system_event", [
-      it("recognises phx_join", fn() {
-        frame.is_system_event(frame.join_event) |> expect.to_equal(True)
-      }),
-      it("recognises heartbeat", fn() {
-        frame.is_system_event(frame.heartbeat_event) |> expect.to_equal(True)
-      }),
-      it("exposes reserved event constants", fn() {
-        frame.join_event |> expect.to_equal("phx_join")
-        frame.leave_event |> expect.to_equal("phx_leave")
-        frame.reply_event |> expect.to_equal("phx_reply")
-        frame.error_event |> expect.to_equal("phx_error")
-        frame.close_event |> expect.to_equal("phx_close")
-        frame.heartbeat_event |> expect.to_equal("heartbeat")
-        frame.heartbeat_topic |> expect.to_equal("phoenix")
+    describe("system events", [
+      it("recognises all reserved events", fn() {
+        [
+          frame.join_event,
+          frame.leave_event,
+          frame.reply_event,
+          frame.error_event,
+          frame.close_event,
+          frame.heartbeat_event,
+        ]
+        |> list.each(fn(event) {
+          frame.is_system_event(event) |> expect.to_equal(True)
+        })
       }),
       it("rejects user events", fn() {
         frame.is_system_event("new_msg") |> expect.to_equal(False)
       }),
     ]),
     describe("roost facade", [
-      it("forwards protocol helpers", fn() {
-        roost.encode_heartbeat("99")
-        |> expect.to_equal(frame.encode_heartbeat("99"))
+      it("forwards encode, decode, and helpers", fn() {
+        let outgoing = roost.heartbeat("99")
+        let assert Ok(encoded) =
+          roost.encode(outgoing, direction: frame.ClientToServer)
+        encoded
+        |> expect.to_equal(frame.TextData(
+          "[null,\"99\",\"phoenix\",\"heartbeat\",{}]",
+        ))
 
-        roost.encode_reply(
-          join_ref: Some("1"),
-          ref: "1",
-          topic: "room:lobby",
-          status: frame.StatusOk,
-          response: json.object([]),
-        )
-        |> expect.to_equal(
-          "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\",\"response\":{}}]",
-        )
+        let assert Ok(decoded) =
+          roost.decode(encoded, direction: frame.ClientToServer)
+        let assert frame.Push(topic: "phoenix", event: "heartbeat", ..) =
+          decoded
 
         roost.is_system_event(frame.reply_event) |> expect.to_equal(True)
-
-        let assert Ok(reply) =
-          roost.decode(
-            "[\"1\",\"1\",\"room:lobby\",\"phx_reply\",{\"status\":\"ok\"}]",
-          )
-        roost.matches_join_reply(reply, "1") |> expect.to_equal(True)
-        roost.reply_status(reply) |> expect.to_equal(Ok(Nil))
-      }),
-      it("forwards encode and decode", fn() {
-        let encoded =
-          roost.encode(
-            join_ref: None,
-            ref: Some("8"),
-            topic: frame.heartbeat_topic,
-            event: frame.heartbeat_event,
-            payload: json.object([]),
-          )
-
-        let assert Ok(decoded) = roost.decode(encoded)
-        decoded.topic |> expect.to_equal(frame.heartbeat_topic)
-        decoded.event |> expect.to_equal(frame.heartbeat_event)
       }),
     ]),
   ])
-}
-
-fn expect_encoded_frames(cases: List(fixtures.FrameCase)) {
-  cases
-  |> list.each(fn(case_) {
-    frame.encode(
-      join_ref: case_.join_ref,
-      ref: case_.ref,
-      topic: case_.topic,
-      event: case_.event,
-      payload: case_.payload,
-    )
-    |> expect.to_equal(case_.encoded)
-  })
 }
 
 fn reply_status(status: fixtures.ReplyStatus) -> frame.ReplyStatus {

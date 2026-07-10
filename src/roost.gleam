@@ -1,43 +1,34 @@
 //// Phoenix channel wire protocol helpers for Gleam.
 ////
 //// This module is the public protocol facade. It forwards to `roost/frame`
-//// for Phoenix wire frame encoding, decoding, heartbeat frames, reply frames,
-//// and reserved system-event checks.
+//// for text and binary frame encoding, decoding, heartbeat construction,
+//// reply handling, and reserved system-event checks.
 
+import gleam/dynamic.{type Dynamic}
 import gleam/json
-import gleam/option.{type Option}
-import roost/frame.{type DecodeError, type Incoming, type ReplyStatus}
+import roost/frame.{
+  type DecodeError, type Direction, type EncodeError, type Frame, type WireData,
+}
 
-/// Encode an outbound Phoenix wire frame.
+/// Encode a Phoenix text or binary frame.
 pub fn encode(
-  join_ref join_ref: Option(String),
-  ref ref: Option(String),
-  topic topic: String,
-  event event: String,
-  payload payload: json.Json,
-) -> String {
-  frame.encode(join_ref:, ref:, topic:, event:, payload:)
+  frame frame: Frame(json.Json),
+  direction direction: Direction,
+) -> Result(WireData, EncodeError) {
+  frame.encode(frame, direction:)
 }
 
-/// Decode a Phoenix wire JSON string into an inbound frame.
-pub fn decode(text: String) -> Result(Incoming, DecodeError) {
-  frame.decode(text)
+/// Decode Phoenix text or binary wire data.
+pub fn decode(
+  data data: WireData,
+  direction direction: Direction,
+) -> Result(Frame(Dynamic), DecodeError) {
+  frame.decode(data, direction:)
 }
 
-/// Encode a Phoenix heartbeat frame.
-pub fn encode_heartbeat(ref: String) -> String {
-  frame.encode_heartbeat(ref)
-}
-
-/// Encode a Phoenix reply frame.
-pub fn encode_reply(
-  join_ref join_ref: Option(String),
-  ref ref: String,
-  topic topic: String,
-  status status: ReplyStatus,
-  response response: json.Json,
-) -> String {
-  frame.encode_reply(join_ref:, ref:, topic:, status:, response:)
+/// Build a Phoenix heartbeat frame.
+pub fn heartbeat(ref: String) -> Frame(json.Json) {
+  frame.heartbeat(ref)
 }
 
 /// Check whether an event name is a Phoenix-reserved system event.
@@ -45,12 +36,12 @@ pub fn is_system_event(event: String) -> Bool {
   frame.is_system_event(event)
 }
 
-/// Check whether an inbound frame is the `phx_reply` for the given join.
-pub fn matches_join_reply(incoming: Incoming, join_ref: String) -> Bool {
+/// Check whether a frame is the `phx_reply` for the given join.
+pub fn matches_join_reply(incoming: Frame(a), join_ref: String) -> Bool {
   frame.matches_join_reply(incoming, join_ref)
 }
 
-/// Interpret a Phoenix `phx_reply` payload's `status`.
-pub fn reply_status(incoming: Incoming) -> Result(Nil, String) {
+/// Interpret a Phoenix reply frame's status.
+pub fn reply_status(incoming: Frame(Dynamic)) -> Result(Nil, String) {
   frame.reply_status(incoming)
 }
