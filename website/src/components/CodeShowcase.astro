@@ -19,7 +19,20 @@ pub fn join() {
   )
 
   roost.encode(message, direction: frame.ClientToServer)
-  // => Ok(TextData("[\\"1\\",\\"1\\",..."))
+  // => Ok(frame.TextData("[\\"1\\",\\"1\\",..."))
+}
+
+/// BinaryPayload selects Phoenix's binary serializer.
+pub fn upload(bytes: BitArray) {
+  frame.Push(
+    join_ref: Some("1"),
+    ref: Some("2"),
+    topic: "room:lobby",
+    event: "upload",
+    payload: frame.BinaryPayload(bytes),
+  )
+  |> roost.encode(direction: frame.ClientToServer)
+  // => Ok(frame.BinaryData(...))
 }
 
 /// Decode whatever the socket hands you into a typed value.
@@ -49,7 +62,7 @@ pub fn handle(data: frame.WireData) {
         <li><span class="dot"></span> One model for JSON and binary payloads</li>
         <li><span class="dot"></span> Direction keeps Phoenix binary headers unambiguous</li>
         <li><span class="dot"></span> Encode and decode failures are typed values</li>
-        <li><span class="dot"></span> Erlang/OTP target; use Phoenix's JS client for browser or Node clients</li>
+        <li><span class="dot"></span> The same protocol API on Erlang and JavaScript</li>
       </ul>
     </div>
 

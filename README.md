@@ -80,15 +80,17 @@ roost.encode(message, direction: frame.ClientToServer)
 - Manage channel processes, refs, reconnects, or heartbeats.
 - Depend on Gluegun, Beryl, Mist, OTP, or any transport runtime.
 
-## JavaScript and TypeScript clients
+## Target support
 
-`roost` targets Erlang/OTP only. It is not intended to be a JavaScript or
-TypeScript Phoenix client.
+`roost` supports both Erlang and JavaScript targets. Its protocol API is the
+same on each target; callers provide the transport and wrap socket data as
+`TextData` or `BinaryData`.
 
 For a full browser or Node.js Phoenix client, prefer the official Phoenix
 JavaScript client. It already handles WebSocket lifecycle, channel state,
 refs, push replies, timeouts, heartbeats, reconnects, rejoins, and Presence.
-Those client responsibilities intentionally live outside `roost`.
+Use `roost` on JavaScript when you specifically need the protocol codec without
+those client responsibilities.
 
 ## Development
 

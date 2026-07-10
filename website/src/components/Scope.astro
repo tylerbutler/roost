@@ -14,7 +14,7 @@ const does = [
   },
   {
     t: 'Heartbeat & reply helpers',
-    d: 'Construct heartbeat frames on the <code>"phoenix"</code> topic and well-formed reply frames.',
+    d: 'Construct heartbeat frames, correlate join replies, and interpret reply statuses.',
   },
   {
     t: 'Reply statuses & error types',
@@ -23,7 +23,7 @@ const does = [
 ];
 
 const youBring = [
-  { t: 'Opening & closing sockets', d: 'roost never touches a WebSocket or chooses its opcode. Use Mist or any Erlang transport.' },
+  { t: 'Opening & closing sockets', d: 'roost never touches a WebSocket or chooses its opcode. Use Mist, a browser WebSocket, or any transport.' },
   { t: 'Channel processes & lifecycle', d: 'Join / leave state machines and supervision live in your runtime.' },
   { t: 'Ref counters & join refs', d: 'Refs are plain strings on the wire; the monotonic counter is yours.' },
   { t: 'Reconnects, rejoins & timeouts', d: 'Backoff, retry, and rejoin policy are application decisions.' },

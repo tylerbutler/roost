@@ -25,13 +25,15 @@ build:
 
 # Build with warnings as errors
 build-strict:
-    gleam build --warnings-as-errors
+    gleam build --target erlang --warnings-as-errors
+    gleam build --target javascript --warnings-as-errors
 
 # === TESTING ===
 
 # Run all tests
 test:
-    gleam test
+    gleam test --target erlang
+    gleam test --target javascript
 
 # === CODE QUALITY ===
 
@@ -45,7 +47,8 @@ format-check:
 
 # Type check without building
 check:
-    gleam check
+    gleam check --target erlang
+    gleam check --target javascript
 
 # === DOCUMENTATION ===
 
