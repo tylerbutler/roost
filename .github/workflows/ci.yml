@@ -22,9 +22,6 @@ jobs:
 
       - uses: tylerbutler/actions/setup-gleam@ed7d5e5f1d4370a5ccf06503916e3c301102ab1c # ratchet:tylerbutler/actions/setup-gleam@main
         with:
-          erlang-version: "27"
-          gleam-version: "1.9.0"
-          version-file: ""
           node: ${{ matrix.target == 'javascript' }}
 
       - if: matrix.target == 'erlang'
