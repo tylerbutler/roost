@@ -1,52 +1,105 @@
 ---
 layout: ../../layouts/ReferenceLayout.astro
 title: "roost/frame"
-description: "Phoenix wire frame encoding and decoding."
-referenceModules: [{"name":"roost","href":"/reference/roost/","description":"Phoenix channel wire protocol helpers for Gleam."},{"name":"roost/frame","href":"/reference/roost-frame/","description":"Phoenix wire frame encoding and decoding."}]
+description: "Phoenix channel wire frame encoding and decoding."
+referenceModules: [{"name":"roost","href":"/reference/roost/","description":"Phoenix channel wire protocol helpers for Gleam."},{"name":"roost/frame","href":"/reference/roost-frame/","description":"Phoenix channel wire frame encoding and decoding."}]
 ---
 
 # `roost/frame`
 
-Phoenix wire frame encoding and decoding.
+Phoenix channel wire frame encoding and decoding.
 
- Phoenix uses a JSON array format:
+ Text frames use Phoenix's JSON array format:
 
  ```
  [join_ref, ref, topic, event, payload]
  ```
 
- Both `join_ref` and `ref` may be `null`. The reserved heartbeat topic is
- the literal string `"phoenix"`.
+ Binary frames use direction-specific headers followed by an opaque byte
+ payload. roost models the direction explicitly because kind `0` has
+ different client-to-server and server-to-client layouts.
 
 ## Types
 
 ### `DecodeError`
 
-Errors emitted when decoding inbound frames.
+Errors emitted when decoding wire data.
 
 ```gleam
 pub type DecodeError {
   InvalidJson(reason: String)
   InvalidFormat(reason: String)
+  InvalidBinary(reason: String)
 }
 ```
 
-### `Incoming`
+### `Direction`
 
-A normalised inbound frame received from a Phoenix-compatible server.
-
- The `payload` is kept as a `Dynamic` so callers can decode it with their
- own schema.
+The direction a frame travels over the socket.
 
 ```gleam
-pub type Incoming {
-  Incoming(
+pub type Direction {
+  ClientToServer
+  ServerToClient
+}
+```
+
+### `EncodeError`
+
+Errors emitted when encoding a frame.
+
+```gleam
+pub type EncodeError {
+  InvalidDirection(reason: String)
+  InvalidBinaryPayload
+  MetadataTooLong(
+    field: String,
+    size: Int
+  )
+}
+```
+
+### `Frame`
+
+A normalised Phoenix channel frame.
+
+ JSON does not preserve the distinction between a server push and a
+ broadcast, so decoded non-reply text frames are represented as `Push`.
+
+```gleam
+pub type Frame(a) {
+  Push(
     join_ref: option.Option(String),
     ref: option.Option(String),
     topic: String,
     event: String,
-    payload: dynamic.Dynamic
+    payload: Payload(a)
   )
+  Reply(
+    join_ref: option.Option(String),
+    ref: String,
+    topic: String,
+    status: ReplyStatus,
+    response: Payload(a)
+  )
+  Broadcast(
+    topic: String,
+    event: String,
+    payload: Payload(a)
+  )
+}
+```
+
+### `Payload`
+
+A frame payload, parameterised by its JSON representation.
+
+ Outbound frames use `json.Json`; decoded frames use `Dynamic`.
+
+```gleam
+pub type Payload(a) {
+  JsonPayload(a)
+  BinaryPayload(BitArray)
 }
 ```
 
@@ -58,6 +111,21 @@ Phoenix reply status.
 pub type ReplyStatus {
   StatusOk
   StatusError
+  StatusOther(String)
+}
+```
+
+### `WireData`
+
+Encoded data to hand to, or received from, a transport.
+
+ The caller is responsible for using the matching WebSocket text or binary
+ opcode.
+
+```gleam
+pub type WireData {
+  TextData(String)
+  BinaryData(BitArray)
 }
 ```
 
@@ -123,49 +191,35 @@ pub const reply_event: String
 
 ### `decode`
 
-Decode a Phoenix wire JSON string into an `Incoming`.
+Decode Phoenix text or binary wire data.
 
 ```gleam
-pub fn decode(String) -> Result(Incoming, DecodeError)
+pub fn decode(
+  WireData,
+  direction: Direction
+) -> Result(Frame(dynamic.Dynamic), DecodeError)
 ```
 
 ### `encode`
 
-Encode an outbound frame as a Phoenix wire JSON string.
+Encode a Phoenix frame as text or binary based on its payload.
 
 ```gleam
 pub fn encode(
-  join_ref: option.Option(String),
-  ref: option.Option(String),
-  topic: String,
-  event: String,
-  payload: json.Json
-) -> String
+  Frame(json.Json),
+  direction: Direction
+) -> Result(WireData, EncodeError)
 ```
 
-### `encode_heartbeat`
+### `heartbeat`
 
-Encode a Phoenix heartbeat frame.
+Build a Phoenix heartbeat frame.
 
  Heartbeats use the reserved topic `"phoenix"` and event `"heartbeat"`,
- with an empty object payload and no `join_ref`.
+ with an empty JSON object payload and no `join_ref`.
 
 ```gleam
-pub fn encode_heartbeat(String) -> String
-```
-
-### `encode_reply`
-
-Encode a Phoenix reply frame.
-
-```gleam
-pub fn encode_reply(
-  join_ref: option.Option(String),
-  ref: String,
-  topic: String,
-  status: ReplyStatus,
-  response: json.Json
-) -> String
+pub fn heartbeat(String) -> Frame(json.Json)
 ```
 
 ### `is_system_event`
@@ -178,27 +232,23 @@ pub fn is_system_event(String) -> Bool
 
 ### `matches_join_reply`
 
-Check whether an inbound frame is the `phx_reply` for the given join.
-
- True when the event is `phx_reply` and the frame's `ref` matches the
- `join_ref` the join was sent with. This is the Phoenix correlation rule for
- pairing a join request with its reply.
+Check whether a frame is the `phx_reply` for the given join.
 
 ```gleam
 pub fn matches_join_reply(
-  Incoming,
+  Frame(a),
   String
 ) -> Bool
 ```
 
 ### `reply_status`
 
-Interpret a Phoenix `phx_reply` payload's `status`.
+Interpret a Phoenix reply frame's status.
 
- Returns `Ok(Nil)` when the status is `"ok"` (joined), or `Error(reason)`
- when the join was rejected. The reason comes from `response.reason` if
- present, otherwise the status string.
+ Returns `Ok(Nil)` for an `"ok"` reply. Error replies use
+ `response.reason` when the response is JSON and contains one, otherwise the
+ status string.
 
 ```gleam
-pub fn reply_status(Incoming) -> Result(Nil, String)
+pub fn reply_status(Frame(dynamic.Dynamic)) -> Result(Nil, String)
 ```

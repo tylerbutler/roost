@@ -2,11 +2,11 @@
 const does = [
   {
     t: 'Encode outbound frames',
-    d: 'Build the Phoenix wire array <code>[join_ref, ref, topic, event, payload]</code> from typed Gleam values.',
+    d: 'Encode typed frames as Phoenix text or binary data, with explicit client/server direction.',
   },
   {
     t: 'Decode inbound frames',
-    d: 'Parse raw socket text back into a typed <code>Incoming</code> value, with explicit <code>DecodeError</code>s.',
+    d: 'Parse socket text or bytes into <code>Push</code>, <code>Reply</code>, or <code>Broadcast</code> values.',
   },
   {
     t: 'Reserved-event constants',
@@ -18,12 +18,12 @@ const does = [
   },
   {
     t: 'Reply statuses & error types',
-    d: 'Typed reply statuses and decode errors, plus join-reply correlation (<code>matches_join_reply</code>) and status interpretation (<code>reply_status</code>) instead of stringly-typed guesswork.',
+    d: 'Typed reply statuses, encode/decode errors, join-reply correlation, and status interpretation instead of stringly-typed guesswork.',
   },
 ];
 
 const youBring = [
-  { t: 'Opening & closing sockets', d: 'roost never touches a WebSocket. Use Mist or any Erlang transport.' },
+  { t: 'Opening & closing sockets', d: 'roost never touches a WebSocket or chooses its opcode. Use Mist or any Erlang transport.' },
   { t: 'Channel processes & lifecycle', d: 'Join / leave state machines and supervision live in your runtime.' },
   { t: 'Ref counters & join refs', d: 'Refs are plain strings on the wire; the monotonic counter is yours.' },
   { t: 'Reconnects, rejoins & timeouts', d: 'Backoff, retry, and rejoin policy are application decisions.' },

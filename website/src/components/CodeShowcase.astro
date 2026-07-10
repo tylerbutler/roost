@@ -7,23 +7,30 @@ import roost
 import roost/frame
 
 /// Encode a phx_join frame for "room:lobby".
-pub fn join() -> String {
-  roost.encode(
+pub fn join() {
+  let message = frame.Push(
     join_ref: Some("1"),
     ref: Some("1"),
     topic: "room:lobby",
     event: "phx_join",
-    payload: json.object([#("name", json.string("alice"))]),
+    payload: frame.JsonPayload(
+      json.object([#("name", json.string("alice"))]),
+    ),
   )
-  // => ["1","1","room:lobby","phx_join",{"name":"alice"}]
+
+  roost.encode(message, direction: frame.ClientToServer)
+  // => Ok(TextData("[\\"1\\",\\"1\\",..."))
 }
 
 /// Decode whatever the socket hands you into a typed value.
-pub fn handle(text: String) {
-  case roost.decode(text) {
-    Ok(frame.Incoming(topic:, event:, ..)) -> route(topic, event)
+pub fn handle(data: frame.WireData) {
+  case roost.decode(data, direction: frame.ServerToClient) {
+    Ok(frame.Push(topic:, event:, ..)) -> route(topic, event)
+    Ok(frame.Reply(ref:, status:, ..)) -> handle_reply(ref, status)
+    Ok(frame.Broadcast(topic:, event:, ..)) -> route(topic, event)
     Error(frame.InvalidJson(reason)) -> log(reason)
     Error(frame.InvalidFormat(reason)) -> log(reason)
+    Error(frame.InvalidBinary(reason)) -> log(reason)
   }
 }`;
 ---
@@ -34,14 +41,14 @@ pub fn handle(text: String) {
       <p class="eyebrow"><span class="eyebrow-tick">//</span> show, don't tell</p>
       <h2 id="code-title">Typed both ways.</h2>
       <p class="code-sub">
-        <code>encode</code> turns labelled Gleam arguments into a Phoenix wire
-        string. <code>decode</code> turns a raw socket message into an
-        <code>Incoming</code> value — or an explicit, typed error. No
-        stringly-typed payloads, no surprises.
+        <code>encode</code> turns a typed frame into Phoenix text or bytes.
+        <code>decode</code> turns socket data back into the same frame model —
+        or an explicit, typed error.
       </p>
       <ul class="code-notes">
-        <li><span class="dot"></span> Labelled args mirror the wire array order</li>
-        <li><span class="dot"></span> Errors are values: <code>InvalidJson</code> / <code>InvalidFormat</code></li>
+        <li><span class="dot"></span> One model for JSON and binary payloads</li>
+        <li><span class="dot"></span> Direction keeps Phoenix binary headers unambiguous</li>
+        <li><span class="dot"></span> Encode and decode failures are typed values</li>
         <li><span class="dot"></span> Erlang/OTP target; use Phoenix's JS client for browser or Node clients</li>
       </ul>
     </div>

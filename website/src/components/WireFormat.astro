@@ -10,7 +10,7 @@ const frames = [
       { i: 1, name: 'ref', value: '"1"', type: 'Option(String)', desc: 'Per-message reference used to match the eventual phx_reply back to this request.', gleam: 'ref: Some("1")' },
       { i: 2, name: 'topic', value: '"room:lobby"', type: 'String', desc: 'The channel topic this frame belongs to. roost keeps it as plain protocol data; your runtime owns the socket.', gleam: 'topic: "room:lobby"' },
       { i: 3, name: 'event', value: '"phx_join"', type: 'String', desc: 'The reserved Phoenix event for joining a channel. roost exposes reserved-event helpers so callers do not hand-roll protocol checks.', gleam: 'event: "phx_join"' },
-      { i: 4, name: 'payload', value: '{ name }', type: 'json.Json', desc: 'Application JSON sent with the join. roost carries the payload; your application decides its shape.', gleam: 'payload: json.object([#("name", json.string("alice"))])' },
+      { i: 4, name: 'payload', value: '{ name }', type: 'Payload(json.Json)', desc: 'Application JSON sent with the join. BinaryPayload selects Phoenix’s binary serializer instead.', gleam: 'payload: frame.JsonPayload(json.object([#("name", json.string("alice"))]))' },
     ],
   },
   {
@@ -23,7 +23,7 @@ const frames = [
       { i: 1, name: 'ref', value: '"2"', type: 'Option(String)', desc: 'The caller still owns the ref. roost builds the frame, not the counter.', gleam: 'ref: Some("2")' },
       { i: 2, name: 'topic', value: '"phoenix"', type: 'String', desc: 'Phoenix reserves the literal "phoenix" topic for heartbeat traffic.', gleam: 'topic: "phoenix"' },
       { i: 3, name: 'event', value: '"heartbeat"', type: 'String', desc: 'The reserved event that tells Phoenix this frame is a heartbeat.', gleam: 'event: "heartbeat"' },
-      { i: 4, name: 'payload', value: '{}', type: 'json.Json', desc: 'Heartbeat payloads are empty by convention; scheduling them is still your runtime\'s job.', gleam: 'payload: json.object([])' },
+      { i: 4, name: 'payload', value: '{}', type: 'Payload(json.Json)', desc: 'Heartbeat payloads are empty JSON by convention; scheduling them is still your runtime\'s job.', gleam: 'payload: frame.JsonPayload(json.object([]))' },
     ],
   },
   {
@@ -36,7 +36,7 @@ const frames = [
       { i: 1, name: 'ref', value: '"1"', type: 'Option(String)', desc: 'Matches the request that Phoenix is answering. This is how callers route replies.', gleam: 'ref: Some("1")' },
       { i: 2, name: 'topic', value: '"room:lobby"', type: 'String', desc: 'The channel topic the reply belongs to.', gleam: 'topic: "room:lobby"' },
       { i: 3, name: 'event', value: '"phx_reply"', type: 'String', desc: 'The reserved event that marks this frame as a Phoenix reply.', gleam: 'event: "phx_reply"' },
-      { i: 4, name: 'payload', value: '{ status }', type: 'json.Json', desc: 'Phoenix replies include status and response data. roost decodes the frame so your code can branch on the result.', gleam: 'payload: reply_payload' },
+      { i: 4, name: 'payload', value: '{ status }', type: 'Reply', desc: 'roost normalises Phoenix text and binary replies into a typed Reply frame with status and response fields.', gleam: 'frame.Reply(ref:, status:, response:, ..)' },
     ],
   },
 ];
@@ -49,10 +49,11 @@ const initialCell = initialFrame.cells[3];
   <div class="container">
     <div class="wire-head">
       <p class="wire-kicker">Tiny protocol inspector</p>
-      <h2 id="wire-title">Five slots. One frame.</h2>
+      <h2 id="wire-title">Text arrays. Binary headers.</h2>
       <p class="wire-sub">
-        Pick a frame, then inspect a slot. roost maps the Phoenix channel wire
-        array to labelled Gleam arguments without taking over your transport.
+        Text frames use the familiar five-slot array shown below. Binary frames
+        use compact direction-specific headers and raw payload bytes; roost
+        maps both into the same typed frame model.
       </p>
     </div>
 

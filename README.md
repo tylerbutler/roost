@@ -23,29 +23,60 @@ roost = { git = "https://github.com/tylerbutler/roost.git", ref = "main" }
 import gleam/json
 import gleam/option.{Some}
 import roost
+import roost/frame
 
 pub fn join_message() {
-  roost.encode(
+  let message = frame.Push(
     join_ref: Some("1"),
     ref: Some("1"),
     topic: "room:lobby",
     event: "phx_join",
-    payload: json.object([#("name", json.string("alice"))]),
+    payload: frame.JsonPayload(
+      json.object([#("name", json.string("alice"))]),
+    ),
   )
+
+  roost.encode(message, direction: frame.ClientToServer)
 }
 ```
 
 ## What it does
 
-- Encodes Phoenix channel wire frames:
+- Encodes and decodes Phoenix text frames using
   `[join_ref, ref, topic, event, payload]`.
-- Decodes Phoenix channel wire frames into typed values.
+- Encodes and decodes Phoenix binary client pushes, server pushes, replies,
+  and broadcasts.
+- Represents transport data explicitly as `TextData(String)` or
+  `BinaryData(BitArray)`.
+- Represents JSON and binary payloads with one typed `Payload(json)` model.
+- Requires `ClientToServer` or `ServerToClient` direction because Phoenix's
+  binary kind `0` layout differs by direction.
 - Provides constants for Phoenix reserved events and heartbeat topic.
-- Provides helpers for heartbeat and reply frames.
+- Provides helpers for heartbeat frames, reply correlation, and reply status.
+
+## Binary payloads
+
+Use `BinaryPayload` to select Phoenix's binary serializer. roost validates the
+one-byte metadata lengths and returns an `EncodeError` instead of truncating
+oversized fields.
+
+```gleam
+let message = frame.Push(
+  join_ref: Some("1"),
+  ref: Some("2"),
+  topic: "room:lobby",
+  event: "upload",
+  payload: frame.BinaryPayload(<<1, 2, 3>>),
+)
+
+roost.encode(message, direction: frame.ClientToServer)
+// Ok(frame.BinaryData(...))
+```
 
 ## What it doesn't do
 
 - Open WebSocket connections.
+- Choose WebSocket text or binary opcodes for your transport.
 - Manage channel processes, refs, reconnects, or heartbeats.
 - Depend on Gluegun, Beryl, Mist, OTP, or any transport runtime.
 
