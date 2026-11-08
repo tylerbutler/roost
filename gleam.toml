@@ -12,3 +12,35 @@ gleam_json = ">= 3.0.0 and < 4.0.0"
 [dev-dependencies]
 startest = ">= 0.8.0 and < 1.0.0"
 phoenix_channel_fixtures = { git = "https://github.com/tylerbutler/phoenix_channel_fixtures.git", ref = "7daccb856d17db6278980277237c201b2acdcdf1" }
+
+[tools.trellis]
+members = ["."]
+
+[tools.trellis.changelog]
+header_format = "# Changelog"
+version_format = "## {{ version }} - {{ date }}"
+kind_format = "### {{ kind }}"
+change_format = "#### {{ body }}"
+kinds = [
+  { label = "Breaking", bump = "major" },
+  { label = "Added", bump = "minor" },
+  { label = "Changed", bump = "patch" },
+  { label = "Deprecated", bump = "patch" },
+  { label = "Fixed", bump = "patch" },
+  { label = "Performance", bump = "patch" },
+  { label = "Removed", bump = "patch" },
+  { label = "Dependencies", bump = "patch" },
+  { label = "Security", bump = "patch" },
+]
+
+[tools.trellis.publish]
+exact_tag_format = "v{version}"
+package_tags = ["exact"]
+
+[tools.trellis.publish.lifecycle]
+default = "git_only"
+
+[tools.trellis.release]
+resume = true
+auto_pre = true
+skip_unchanged = true
