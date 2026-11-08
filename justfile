@@ -7,6 +7,7 @@ alias f := format
 alias c := check
 alias d := docs
 alias cl := change
+alias td := trellis-doctor
 
 default:
     @just --list
@@ -34,6 +35,10 @@ build-strict:
 test:
     gleam test --target erlang
     gleam test --target javascript
+
+# Check release workflow safety without GitHub writes
+test-release:
+    python3 -B -m unittest discover -s test -p release_workflow_test.py
 
 # === CODE QUALITY ===
 
@@ -67,16 +72,23 @@ site-build: site-reference
 # === CHANGELOG ===
 
 # Create a new changelog entry
-change:
-    changie new
+[positional-arguments]
+change *ARGS:
+    trellis changelog new "$@"
 
 # Preview unreleased changelog
-changelog-preview:
-    changie batch auto --dry-run
+[positional-arguments]
+changelog-preview *ARGS:
+    trellis version plan "$@"
 
-# Generate CHANGELOG.md
-changelog:
-    changie merge
+# Apply pending versions and regenerate CHANGELOG.md
+[positional-arguments]
+changelog *ARGS:
+    trellis version apply "$@"
+
+# Validate the release workspace
+trellis-doctor:
+    trellis doctor
 
 # === MAINTENANCE ===
 
@@ -86,8 +98,8 @@ clean:
 
 # === CI ===
 
-# Run all CI checks (format, check, test, build)
-ci: format-check check test build-strict
+# Run code and release configuration checks
+ci: format-check check test test-release build-strict trellis-doctor
 
 # Alias for PR checks
 alias pr := ci

@@ -2,15 +2,15 @@
 
 Phoenix channel wire protocol helpers for Gleam.
 
-> **Status:** pre-1.0. API unstable. Not published on Hex until 1.0.
+> **Status:** pre-1.0. API unstable. Git-only distribution.
 
 ## Availability
 
-`roost` will not be published on Hex until 1.0. There is intentionally no
-Hex install command yet.
+Install `roost` from Git. Stable versions and release candidates use Git tags
+and [GitHub Releases](https://github.com/tylerbutler/roost/releases), not Hex.
 
-Until the first stable release, add it as a Git dependency in `gleam.toml`.
-Pin `ref` to a commit, tag, or branch that matches the API you are testing.
+Add a Git dependency in `gleam.toml`. Pin `ref` to a commit or a release tag
+that matches the API you need. Use `main` only when you want unreleased changes.
 
 ```toml
 [dependencies]
@@ -100,6 +100,63 @@ just build         # Build the project
 just test          # Run tests
 just check         # Type check
 just format        # Format source
-just ci            # format-check, check, test, build-strict
+just ci            # Code checks, release checks, and Trellis doctor
 just docs          # Build docs
+just change --kind Fixed --body "Describe the fix" # Add a change fragment
+just changelog-preview # Plan versions without writes
+just trellis-doctor # Validate release configuration
+just test-release  # Check release workflow safety offline
 ```
+
+## Releases
+
+Use Trellis 1.3.0 from `mise.toml` (`mise install`, then `mise exec -- just ...`).
+The workspace contains only the root Gleam package; the website is not a release
+package. Add fragments for user-facing changes with `just change`. Trellis
+prepares versions and release notes in a `release/pending` PR on pushes to
+`main`. It keeps the pending request's version targets and release mode, skips
+unchanged release content, and continues committed candidates without promoting
+them to stable. Promotion can regenerate the final rollup when it resumes.
+
+To choose a release mode, run **Trellis Release** from the Actions page with
+**main** selected:
+
+| `pre` | `version` | Request |
+| --- | --- | --- |
+| empty | optional target | Prepare stable, or retain the current pending/candidate mode |
+| `rc` | optional target, such as `1.0.0` | Start or continue a release candidate cycle |
+| `none` | usually empty | Promote the current candidate to stable |
+
+Trellis validates the version input. An explicit target changes that target;
+omitted fields retain pending intent. To promote an active candidate, use
+`none`, not an empty input.
+
+Review and merge the release PR through normal branch protection. **Auto-tag
+release** accepts only merged, same-repository `release/pending` PRs targeting
+`main`. It checks out that PR's merge commit and creates immutable `v{version}`
+tags and GitHub Releases with the matching changelog notes. RC releases remain
+prereleases. Tag pushes run the existing Erlang and JavaScript CI. Preparation
+and tagging share a queue and do not cancel active release writes.
+
+If tagging fails, rerun the original merge-event job to retry the same approved
+commit, even if `main` has advanced. Manual **Auto-tag release** dispatch is also
+available on **main**, but selects its current HEAD. Review that revision first;
+use the original job rerun for recovery of an older release. Trellis reconciles
+existing tags and releases and rejects conflicting immutable tag objects.
+
+### Release credentials and adoption
+
+A maintainer must install a release GitHub App on this repository and configure
+`RELEASE_APP_ID` and `RELEASE_APP_PRIVATE_KEY` repository secrets. Give the App
+**Contents: read/write** and **Pull requests: read/write**. Its token allows
+generated PRs and tags to trigger CI. Ordinary CI uses read-only repository
+permissions and needs no release secrets. No Hex token or publication step is
+part of this workflow. Keep required checks and approvals on release PRs;
+the workflow does not bypass them.
+
+Roost has no historical releases to migrate. Add release fragments or choose a
+target version before the first release; this setup does not create an initial
+tag. Trellis 1.3.0 archives candidate fragments under
+`.changes/roost/v<prerelease>.toml` and records pending intent in
+`.changes/release.toml`. Keep those files in release commits so stable promotion
+can collect the candidate notes. Invalid or stale state stops preparation.

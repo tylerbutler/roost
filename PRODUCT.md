@@ -20,8 +20,9 @@ channel wire protocol (`[join_ref, ref, topic, event, payload]`) on Erlang and
 JavaScript. It is protocol-only: it owns no sockets, channel processes, refs,
 reconnects, or heartbeat actors. The landing page exists to let a qualified visitor
 self-qualify fast — to clearly communicate the scope (what it does AND what it
-intentionally leaves to the caller), make clear that Hex publication waits for
-1.0, and route them to Git dependency instructions and source/docs. Success is a
+intentionally leaves to the caller), make clear that distribution uses Git tags
+and GitHub Releases rather than Hex, and route them to Git dependency instructions
+and source/docs. Success is a
 visitor who, within a minute, knows exactly whether roost belongs in their
 project and feels confident in the craft behind it.
 

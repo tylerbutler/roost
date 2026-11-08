@@ -13,8 +13,10 @@ just test          # gleam test
 just format        # gleam format src test
 just format-check  # gleam format --check src test
 just docs          # gleam docs build
-just ci            # format-check, check, test, build-strict
-just main          # ci plus docs
+just trellis-doctor # trellis doctor
+just test-release  # Offline release workflow checks
+just ci            # format-check, check, test, test-release, build-strict, trellis-doctor
+just main          # ci plus site-build
 ```
 
 Run a single Startest test:
@@ -41,6 +43,11 @@ The public API centers on:
   `DecodeError`, reply statuses, and reserved event constants.
 
 ## Key conventions
+
+- Releases use Trellis 1.3.0 from `mise.toml`, exact `v{version}` Git tags, and
+  GitHub Releases. Roost is `git_only` at all versions; do not add Hex publication.
+- Use native Trellis release resumption and candidate continuation. Keep
+  `.changes/release.toml` and candidate archives in release commits.
 
 - Keep the package protocol-only. Do not add transport,
   channel lifecycle, heartbeat actors, ref counters, or runtime-specific APIs.
