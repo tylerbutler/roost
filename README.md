@@ -94,7 +94,12 @@ those client responsibilities.
 
 ## Development
 
+Install the development tools with [mise](https://mise.jdx.dev/). Use
+`mise.toml` for tool versions in local development and CI.
+
 ```sh
+mise install       # Install development tools
+mise exec -- just deps # Download dependencies with mise tools
 just deps          # Download dependencies
 just build         # Build the project
 just test          # Run tests
@@ -107,6 +112,9 @@ just changelog-preview # Plan versions without writes
 just trellis-doctor # Validate release configuration
 just test-release  # Check release workflow safety offline
 ```
+
+The `just` commands require mise activation in your shell. Without activation,
+use `mise exec -- just ...`.
 
 ### Website deployment
 
@@ -138,10 +146,16 @@ the reference pages committed under `website/src/pages/reference`; it does not
 need Gleam or Erlang. When the API changes, run `just site-reference` locally
 and commit the updated pages before deployment.
 
+Keep development tool versions in `mise.toml`, not `.tool-versions`.
+Cloudflare detects `.tool-versions` and attempts to install the BEAM tools
+before the website build.
+
 To build and deploy locally, run `pnpm install --frozen-lockfile`, `pnpm build`,
 and `pnpm run deploy` from `website`. Local deployment requires Cloudflare
 authentication. Set the custom domain in Cloudflare, then update `site` in
 `website/astro.config.mjs` to the final public URL.
+
+Use `mise exec -- pnpm ...` if you have not activated mise in your shell.
 
 For a local Preview deployment, build the site and run
 `pnpm run deploy:preview`. The existing `pnpm preview` command only serves the
