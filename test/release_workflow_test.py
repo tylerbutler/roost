@@ -68,6 +68,24 @@ class ReleaseWorkflowTests(unittest.TestCase):
             text = path.read_text()
             self.assertNotRegex(text, r"\b(?:gleam|trellis)\s+publish\b|HEX_API_KEY")
 
+    def test_mise_replaces_legacy_tool_installation(self):
+        self.assertFalse((ROOT / ".tool-versions").exists())
+        tools = tomllib.loads((ROOT / "mise.toml").read_text())["tools"]
+        for tool, version in (
+            ("erlang", "27.2.1"), ("gleam", "1.16.0"),
+            ("just", "1.38.0"), ("rebar", "3.26.0"),
+            ("node", "22"), ("pnpm", "10"),
+        ):
+            self.assertEqual(tools[tool], version)
+        workflow = (WORKFLOWS / "ci.yml").read_text()
+        self.assertNotIn("actions/setup-gleam@", workflow)
+        self.assertIn(
+            "install_args: erlang gleam rebar "
+            "${{ matrix.target == 'javascript' && 'node' || '' }}",
+            workflow,
+        )
+        self.assertIn("run: gleam deps download", workflow)
+
     def test_local_commands_preserve_argument_boundaries(self):
         recipes = (ROOT / "justfile").read_text()
         for name, command in (
