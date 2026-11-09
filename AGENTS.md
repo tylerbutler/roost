@@ -9,7 +9,7 @@ just deps          # gleam deps download
 just build         # gleam build
 just build-strict  # gleam build --warnings-as-errors
 just check         # gleam check
-just test          # gleam test
+just test          # Unitest on Erlang and JavaScript
 just format        # gleam format src test
 just format-check  # gleam format --check src test
 just docs          # gleam docs build
@@ -19,11 +19,10 @@ just ci            # format-check, check, test, test-release, build-strict, trel
 just main          # ci plus site-build
 ```
 
-Run a single Startest test:
+Run a single Unitest test:
 
 ```sh
-gleam build
-gleam test -- test/frame_test.gleam --test-name-filter="encodes a phx_join"
+gleam test -- --test frame_test.text_encode_client_outbound_fixtures_test
 ```
 
 ## High-level architecture
@@ -56,7 +55,8 @@ The public API centers on:
 - Reserved Phoenix events are `phx_join`, `phx_leave`, `phx_reply`,
   `phx_error`, `phx_close`, `heartbeat`. Heartbeat topic is the literal
   `"phoenix"`.
-- Tests use Startest with public describe functions ending in `_tests` under
-  `test/` (matches the Gluegun and Beryl conventions).
+- Tests use Unitest with public zero-argument functions ending in `_test` under
+  `test/` and native Gleam assertions. Keep tests independent: Unitest randomizes
+  their execution order; pass `--seed <int>` to reproduce an order.
 - The wire codec is currently Phoenix-only. A future major version may expose
   a pluggable `Codec` similar to `beryl/wire/codec`.
