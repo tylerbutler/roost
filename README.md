@@ -102,7 +102,7 @@ mise install       # Install development tools
 mise exec -- just deps # Download dependencies with mise tools
 just deps          # Download dependencies
 just build         # Build the project
-just test          # Run tests
+just test          # Run Unitest on Erlang and JavaScript
 just check         # Type check
 just format        # Format source
 just ci            # Code checks, release checks, and Trellis doctor
@@ -115,6 +115,17 @@ just test-release  # Check release workflow safety offline
 
 The `just` commands require mise activation in your shell. Without activation,
 use `mise exec -- just ...`.
+
+Tests use [Unitest](https://hexdocs.pm/unitest/) and native Gleam assertions.
+Public zero-argument functions ending in `_test` under `test/` are discovered
+automatically. Unitest randomizes execution order; use `--seed` to reproduce it:
+
+```sh
+gleam test -- --seed 123
+gleam test -- test/frame_test.gleam
+gleam test -- --test frame_test.text_encode_client_outbound_fixtures_test
+gleam test --target javascript -- --seed 123
+```
 
 ### Website deployment
 
