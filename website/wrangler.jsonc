@@ -1,0 +1,8 @@
+{
+  "name": "roost-website",
+  "compatibility_date": "2026-11-08",
+  "previews": {},
+  "assets": {
+    "directory": "./dist"
+  }
+}

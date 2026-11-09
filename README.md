@@ -108,6 +108,48 @@ just trellis-doctor # Validate release configuration
 just test-release  # Check release workflow safety offline
 ```
 
+### Website deployment
+
+The Astro website deploys to Cloudflare Workers as static assets. No Worker
+code or server-side adapter is needed.
+
+After this change is merged, connect `tylerbutler/roost` in Cloudflare Workers
+and use these build settings:
+
+| Setting | Value |
+| --- | --- |
+| Worker name | `roost-website` (matches `website/wrangler.jsonc`) |
+| Production branch | `main` |
+| Root directory | `website` |
+| Build command | `pnpm build` |
+| Deploy command | `pnpm run deploy` |
+| Preview command | `pnpm run deploy:preview` |
+| Branch control | Enable Preview Builds |
+
+Preview builds run the same Astro build for non-production branches, then
+deploy a Worker Preview without changing production. The Preview name defaults
+to the Git branch. Cloudflare's GitHub integration posts Preview URLs on pull
+requests. The empty `previews` block is sufficient for this static site, which
+has no runtime variables, secrets, or bindings. The deploy scripts pin Wrangler
+to a version that supports Worker Previews.
+
+Cloudflare installs dependencies from `website/pnpm-lock.yaml`. The build uses
+the reference pages committed under `website/src/pages/reference`; it does not
+need Gleam or Erlang. When the API changes, run `just site-reference` locally
+and commit the updated pages before deployment.
+
+To build and deploy locally, run `pnpm install --frozen-lockfile`, `pnpm build`,
+and `pnpm run deploy` from `website`. Local deployment requires Cloudflare
+authentication. Set the custom domain in Cloudflare, then update `site` in
+`website/astro.config.mjs` to the final public URL.
+
+For a local Preview deployment, build the site and run
+`pnpm run deploy:preview`. The existing `pnpm preview` command only serves the
+Astro build locally; it does not deploy to Cloudflare.
+
+Remove the old Netlify GitHub connection after the Cloudflare site is live.
+This repository does not create or connect the Cloudflare site automatically.
+
 ## Releases
 
 Use Trellis 1.3.0 from `mise.toml` (`mise install`, then `mise exec -- just ...`).
