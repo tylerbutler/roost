@@ -1,0 +1,14 @@
+name = "roost_codec_bench"
+version = "0.1.0"
+description = "Opt-in Phoenix codec microbenchmarks for roost"
+gleam = ">= 1.15.4"
+target = "erlang"
+
+[dependencies]
+roost = { path = "../.." }
+gleam_stdlib = ">= 0.48.0 and < 2.0.0"
+gleam_json = ">= 3.0.0 and < 4.0.0"
+
+[dev-dependencies]
+glychee = ">= 1.1.3 and < 2.0.0"
+unitest = ">= 1.6.1 and < 2.0.0"
