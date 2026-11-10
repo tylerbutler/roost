@@ -8,7 +8,7 @@ import roost_codec_bench/fixture
 
 pub fn main() -> Nil {
   let inputs = fixture.all()
-  let assert Ok(Nil) = fixture.preflight(inputs)
+  fixture.preflight(inputs)
   io.println("Codec preflight passed; target=erlang mode=dev parallel=1")
 
   configuration.initialize()

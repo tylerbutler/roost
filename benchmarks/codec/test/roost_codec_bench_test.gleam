@@ -7,23 +7,21 @@ pub fn main() {
 }
 
 pub fn text_fixtures_test() {
-  let assert Ok(Nil) =
-    [128, 4096, 65_536]
-    |> list.flat_map(fixture.text)
-    |> fixture.check
+  [128, 4096, 65_536]
+  |> list.flat_map(fixture.text)
+  |> fixture.check
 }
 
 pub fn binary_fixtures_test() {
-  let assert Ok(Nil) =
-    [128, 4096, 65_536]
-    |> list.flat_map(fixture.binary)
-    |> fixture.check
+  [128, 4096, 65_536]
+  |> list.flat_map(fixture.binary)
+  |> fixture.check
 }
 
 pub fn rejections_test() {
-  let assert Ok(Nil) = fixture.check_rejections()
+  fixture.check_rejections()
 }
 
 pub fn boundaries_test() {
-  let assert Ok(Nil) = fixture.check_boundaries()
+  fixture.check_boundaries()
 }

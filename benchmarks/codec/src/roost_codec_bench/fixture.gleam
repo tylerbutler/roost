@@ -5,7 +5,6 @@ import gleam/int
 import gleam/json
 import gleam/list
 import gleam/option.{None, Some}
-import gleam/result
 import gleam/string
 import roost
 import roost/frame.{
@@ -22,10 +21,6 @@ pub type Fixture {
     expected: Frame(Dynamic),
     wire: WireData,
   )
-}
-
-pub type Failure {
-  Failure(label: String, reason: String)
 }
 
 pub type Rejection {
@@ -197,43 +192,38 @@ pub fn oversized_topic() -> Frame(json.Json) {
   Push(None, None, string.repeat("a", 256), "echo", BinaryPayload(<<>>))
 }
 
-pub fn check(inputs: List(Fixture)) -> Result(Nil, Failure) {
-  use _ <- result.try(
-    list.try_map(inputs, fn(input) {
-      use _ <- result.try(expect(
-        input.label <> "/encode",
-        roost.encode(input.outgoing, input.direction) == Ok(input.wire),
-        "Encoded wire differs from the independent expected layout",
-      ))
-      use _ <- result.try(expect(
-        input.label <> "/decode",
-        roost.decode(input.wire, input.direction) == Ok(input.expected),
-        "Decoded fields or complete payload differ",
-      ))
-      case input.direction, input.wire, input.expected {
-        ClientToServer, TextData(_), Push(..) ->
-          expect(
-            input.label <> "/server_decode",
-            roost.decode(input.wire, ServerToClient) == Ok(input.expected),
-            "Text push did not decode identically in the server direction",
-          )
-        _, _, _ -> Ok(Nil)
-      }
-    }),
-  )
-  Ok(Nil)
+pub fn check(inputs: List(Fixture)) -> Nil {
+  list.each(inputs, fn(input) {
+    expect(
+      input.label <> "/encode",
+      roost.encode(input.outgoing, input.direction) == Ok(input.wire),
+      "Encoded wire differs from the independent expected layout",
+    )
+    expect(
+      input.label <> "/decode",
+      roost.decode(input.wire, input.direction) == Ok(input.expected),
+      "Decoded fields or complete payload differ",
+    )
+    case input.direction, input.wire, input.expected {
+      ClientToServer, TextData(_), Push(..) ->
+        expect(
+          input.label <> "/server_decode",
+          roost.decode(input.wire, ServerToClient) == Ok(input.expected),
+          "Text push did not decode identically in the server direction",
+        )
+      _, _, _ -> Nil
+    }
+  })
 }
 
-pub fn check_rejections() -> Result(Nil, Failure) {
-  use _ <- result.try(
-    list.try_map(rejections(), fn(input) {
-      expect(
-        input.label,
-        roost.decode(input.wire, input.direction) == Error(input.expected),
-        "Unexpected decode rejection",
-      )
-    }),
-  )
+pub fn check_rejections() -> Nil {
+  list.each(rejections(), fn(input) {
+    expect(
+      input.label,
+      roost.decode(input.wire, input.direction) == Error(input.expected),
+      "Unexpected decode rejection",
+    )
+  })
   expect(
     "binary/reject/topic_bytes=256/client_to_server",
     roost.encode(oversized_topic(), ClientToServer)
@@ -242,7 +232,7 @@ pub fn check_rejections() -> Result(Nil, Failure) {
   )
 }
 
-pub fn check_boundaries() -> Result(Nil, Failure) {
+pub fn check_boundaries() -> Nil {
   let assert Ok(null) = json.parse("null", decode.dynamic)
   let topic = string.repeat("a", 255)
   let inputs = [
@@ -282,61 +272,46 @@ pub fn check_boundaries() -> Result(Nil, Failure) {
       BinaryData(<<0, 0, 0, 255, 1, topic:utf8, "e":utf8>>),
     ),
   ]
-  use _ <- result.try(check(inputs))
-  use _ <- result.try(
-    list.try_map(
-      [
-        #("ok", StatusOk),
-        #("error", frame.StatusError),
-        #("timeout", frame.StatusOther("timeout")),
-      ],
-      fn(status) {
-        let #(text, canonical) = status
-        check([
-          Fixture(
-            "text/status=" <> text <> "/server_to_client",
-            ServerToClient,
-            Reply(
-              None,
-              "",
-              "",
-              frame.StatusOther(text),
-              JsonPayload(json.null()),
-            ),
-            Reply(None, "", "", canonical, JsonPayload(null)),
-            TextData(
-              "[null,\"\",\"\",\"phx_reply\",{\"status\":\""
-              <> text
-              <> "\",\"response\":null}]",
-            ),
+  check(inputs)
+  list.each(
+    [
+      #("ok", StatusOk),
+      #("error", frame.StatusError),
+      #("timeout", frame.StatusOther("timeout")),
+    ],
+    fn(status) {
+      let #(text, canonical) = status
+      check([
+        Fixture(
+          "text/status=" <> text <> "/server_to_client",
+          ServerToClient,
+          Reply(None, "", "", frame.StatusOther(text), JsonPayload(json.null())),
+          Reply(None, "", "", canonical, JsonPayload(null)),
+          TextData(
+            "[null,\"\",\"\",\"phx_reply\",{\"status\":\""
+            <> text
+            <> "\",\"response\":null}]",
           ),
-          Fixture(
-            "binary/status=" <> text <> "/server_to_client",
-            ServerToClient,
-            Reply(None, "", "", frame.StatusOther(text), BinaryPayload(<<>>)),
-            Reply(None, "", "", canonical, BinaryPayload(<<>>)),
-            BinaryData(<<1, 0, 0, 0, string.byte_size(text), text:utf8>>),
-          ),
-        ])
-      },
-    ),
+        ),
+        Fixture(
+          "binary/status=" <> text <> "/server_to_client",
+          ServerToClient,
+          Reply(None, "", "", frame.StatusOther(text), BinaryPayload(<<>>)),
+          Reply(None, "", "", canonical, BinaryPayload(<<>>)),
+          BinaryData(<<1, 0, 0, 0, string.byte_size(text), text:utf8>>),
+        ),
+      ])
+    },
   )
-  Ok(Nil)
 }
 
-pub fn preflight(inputs: List(Fixture)) -> Result(Nil, Failure) {
-  use _ <- result.try(check(inputs))
-  use _ <- result.try(check_rejections())
+pub fn preflight(inputs: List(Fixture)) -> Nil {
+  check(inputs)
+  check_rejections()
   check_boundaries()
 }
 
-fn expect(
-  label: String,
-  condition: Bool,
-  reason: String,
-) -> Result(Nil, Failure) {
-  case condition {
-    True -> Ok(Nil)
-    False -> Error(Failure(label, reason))
-  }
+fn expect(label: String, condition: Bool, reason: String) -> Nil {
+  let assert True = condition as { label <> ": " <> reason }
+  Nil
 }
