@@ -127,6 +127,14 @@ gleam test -- --test frame_test.text_encode_client_outbound_fixtures_test
 gleam test --target javascript -- --seed 123
 ```
 
+### Optional codec benchmarks
+
+Erlang-only [Glychee codec benchmarks](benchmarks/codec/README.md) measure
+text and binary encoding, decoding, and representative rejections without
+sockets or actors. Run `just bench-codec-deps`, `just bench-codec-check`, then
+`just bench-codec`. Their Elixir/Benchee dependencies and measurements stay
+outside the normal Erlang/JavaScript suite, CI, and releases.
+
 ### Website deployment
 
 The Astro website deploys to Cloudflare Workers as static assets. No Worker

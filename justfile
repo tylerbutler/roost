@@ -18,6 +18,26 @@ default:
 deps:
     gleam deps download
 
+# Install the optional Erlang codec benchmark toolchain and dependencies
+bench-codec-deps:
+    cd benchmarks/codec && mise install elixir
+    cd benchmarks/codec && mise exec -- mix local.hex --force --if-missing
+    cd benchmarks/codec && mise exec -- gleam deps download
+
+# Validate benchmark fixtures without measuring performance
+bench-codec-check:
+    cd benchmarks/codec && mise exec -- gleam format --check src dev test
+    cd benchmarks/codec && mise exec -- gleam build --warnings-as-errors
+    cd benchmarks/codec && mise exec -- gleam test
+
+# Measure codec calls locally; first run bench-codec-deps
+bench-codec:
+    git rev-parse HEAD
+    git status --short
+    cd benchmarks/codec && mise exec -- gleam --version
+    cd benchmarks/codec && mise exec -- elixir --version
+    cd benchmarks/codec && mise exec -- gleam run -m roost_codec_bench
+
 # === BUILD ===
 
 # Build project

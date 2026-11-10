@@ -1,0 +1,3 @@
+# Only the optional benchmarks need Elixir; inherit the root OTP toolchain.
+[tools]
+elixir = "1.18.4-otp-27"
